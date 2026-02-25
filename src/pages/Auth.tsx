@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { z } from 'zod';
-import { Shield, Eye, EyeOff, AlertTriangle, Mail, Lock, User, LayoutDashboard, Command, FileText, Hash, GraduationCap, Briefcase, KeyRound, ArrowLeft, CheckCircle2, Sparkles, Wrench } from 'lucide-react';
+import { Shield, Eye, EyeOff, AlertTriangle, Mail, Lock, User, LayoutDashboard, Command, FileText, Hash, GraduationCap, Briefcase, ArrowLeft, CheckCircle2, Sparkles, Wrench } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -13,7 +13,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { PageTransition } from '@/components/ui/PageTransition';
 import { supabase } from '@/integrations/supabase/client';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import collegeLogo from '@/assets/college-logo.jpg';
 
 const emailSchema = z.string().email('Invalid email format').max(255);
@@ -30,7 +29,7 @@ const studentEmailSchema = z.string().email('Invalid email format').refine(
 );
 
 type UserType = 'student' | 'official' | 'staff';
-type ResetStep = 'email' | 'otp' | 'newPassword' | 'success';
+type ResetStep = 'email' | 'sent';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -42,7 +41,6 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [otpCode, setOtpCode] = useState('');
   const [fullName, setFullName] = useState('');
   const [accessRequestReason, setAccessRequestReason] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -93,7 +91,6 @@ export default function AuthPage() {
   useEffect(() => {
     if (!isForgotPassword) {
       setResetStep('email');
-      setOtpCode('');
       setNewPassword('');
       setConfirmPassword('');
     }
@@ -111,14 +108,6 @@ export default function AuthPage() {
         const emailResult = emailSchema.safeParse(email);
         if (!emailResult.success) {
           newErrors.email = emailResult.error.errors[0].message;
-        }
-      } else if (resetStep === 'newPassword') {
-        const passwordResult = passwordSchema.safeParse(newPassword);
-        if (!passwordResult.success) {
-          newErrors.newPassword = passwordResult.error.errors[0].message;
-        }
-        if (newPassword !== confirmPassword) {
-          newErrors.confirmPassword = 'Passwords do not match';
         }
       }
     } else if (isLogin) {
@@ -168,67 +157,26 @@ export default function AuthPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSendOtp = async () => {
+  const handleSendResetLink = async () => {
     if (!validateForm()) return;
     
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-otp', {
-        body: { email: email.toLowerCase() },
+      const { error } = await supabase.auth.resetPasswordForEmail(email.toLowerCase(), {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
+      if (error) throw error;
 
       toast({
-        title: '📧 Code Sent!',
-        description: 'Check your email for the 6-digit verification code.',
+        title: '📧 Reset Link Sent!',
+        description: 'Check your email for the password reset link.',
       });
-      setResetStep('otp');
+      setResetStep('sent');
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to send verification code.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (otpCode.length !== 6) {
-      toast({
-        title: 'Invalid Code',
-        description: 'Please enter the complete 6-digit code.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    setResetStep('newPassword');
-  };
-
-  const handleResetPassword = async () => {
-    if (!validateForm()) return;
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('verify-otp', {
-        body: { 
-          email: email.toLowerCase(), 
-          code: otpCode,
-          newPassword: newPassword,
-        },
-      });
-
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-
-      setResetStep('success');
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to reset password.',
+        description: error.message || 'Failed to send reset link.',
         variant: 'destructive',
       });
     } finally {
@@ -241,11 +189,7 @@ export default function AuthPage() {
     
     if (isForgotPassword) {
       if (resetStep === 'email') {
-        await handleSendOtp();
-      } else if (resetStep === 'otp') {
-        await handleVerifyOtp();
-      } else if (resetStep === 'newPassword') {
-        await handleResetPassword();
+        await handleSendResetLink();
       }
       return;
     }
@@ -424,8 +368,8 @@ export default function AuthPage() {
     }
   };
 
-  // Password reset success screen
-  if (isForgotPassword && resetStep === 'success') {
+  // Password reset link sent screen
+  if (isForgotPassword && resetStep === 'sent') {
     return (
       <PageTransition className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
         <div className="absolute top-4 right-4">
@@ -445,14 +389,17 @@ export default function AuthPage() {
               transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
               className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-success/20 to-success/10 mb-6 shadow-lg"
             >
-              <CheckCircle2 className="w-10 h-10 text-success" />
+              <Mail className="w-10 h-10 text-success" />
             </motion.div>
             
             <h1 className="text-2xl font-bold text-foreground mb-3">
-              Password Reset Complete!
+              Check Your Email!
             </h1>
-            <p className="text-muted-foreground mb-8">
-              Your password has been successfully updated. You can now sign in with your new password.
+            <p className="text-muted-foreground mb-4">
+              We've sent a password reset link to <span className="font-medium text-foreground">{email}</span>
+            </p>
+            <p className="text-sm text-muted-foreground mb-8">
+              Click the link in the email to set a new password. If you don't see it, check your spam folder.
             </p>
             
             <AnimatedButton
@@ -460,9 +407,6 @@ export default function AuthPage() {
                 setIsForgotPassword(false);
                 setResetStep('email');
                 setEmail('');
-                setOtpCode('');
-                setNewPassword('');
-                setConfirmPassword('');
               }}
               className="w-full gradient-primary text-primary-foreground font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all"
             >
@@ -522,7 +466,7 @@ export default function AuthPage() {
     );
   }
 
-  // Forgot Password Flow
+  // Forgot Password Flow - email input
   if (isForgotPassword) {
     return (
       <PageTransition className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
@@ -530,7 +474,6 @@ export default function AuthPage() {
           <ThemeToggle />
         </div>
         
-        {/* Decorative elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
           <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
@@ -543,24 +486,14 @@ export default function AuthPage() {
           className="w-full max-w-md relative z-10"
         >
           <div className="glass-card rounded-3xl p-8 shadow-2xl border border-border/50">
-            {/* Back Button */}
             <button
-              onClick={() => {
-                if (resetStep === 'email') {
-                  setIsForgotPassword(false);
-                } else if (resetStep === 'otp') {
-                  setResetStep('email');
-                } else if (resetStep === 'newPassword') {
-                  setResetStep('otp');
-                }
-              }}
+              onClick={() => setIsForgotPassword(false)}
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6 group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
               <span className="text-sm">Back</span>
             </button>
 
-            {/* Header */}
             <div className="text-center mb-8">
               <motion.div
                 initial={{ scale: 0 }}
@@ -568,182 +501,37 @@ export default function AuthPage() {
                 transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
                 className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 mb-4 shadow-lg"
               >
-                {resetStep === 'email' && <Mail className="w-8 h-8 text-primary" />}
-                {resetStep === 'otp' && <KeyRound className="w-8 h-8 text-primary" />}
-                {resetStep === 'newPassword' && <Lock className="w-8 h-8 text-primary" />}
+                <Mail className="w-8 h-8 text-primary" />
               </motion.div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">
-                {resetStep === 'email' && 'Reset Password'}
-                {resetStep === 'otp' && 'Enter Code'}
-                {resetStep === 'newPassword' && 'Create New Password'}
-              </h1>
+              <h1 className="text-2xl font-bold text-foreground mb-2">Reset Password</h1>
               <p className="text-muted-foreground text-sm">
-                {resetStep === 'email' && "Enter your email and we'll send you a verification code"}
-                {resetStep === 'otp' && 'Enter the 6-digit code sent to your email'}
-                {resetStep === 'newPassword' && 'Choose a strong password for your account'}
+                Enter your email and we'll send you a reset link
               </p>
             </div>
 
-            {/* Progress Indicator */}
-            <div className="flex items-center justify-center gap-2 mb-8">
-              {['email', 'otp', 'newPassword'].map((step, index) => (
-                <div key={step} className="flex items-center">
-                  <motion.div
-                    initial={{ scale: 0.8 }}
-                    animate={{ 
-                      scale: resetStep === step ? 1.1 : 1,
-                      backgroundColor: 
-                        (resetStep === step || 
-                         (resetStep === 'otp' && index === 0) || 
-                         (resetStep === 'newPassword' && index <= 1))
-                          ? 'hsl(var(--primary))' 
-                          : 'hsl(var(--muted))'
-                    }}
-                    className="w-3 h-3 rounded-full transition-colors"
-                  />
-                  {index < 2 && (
-                    <div className={`w-12 h-0.5 mx-1 transition-colors ${
-                      (resetStep === 'otp' && index === 0) || 
-                      (resetStep === 'newPassword' && index <= 1)
-                        ? 'bg-primary' 
-                        : 'bg-muted'
-                    }`} />
-                  )}
-                </div>
-              ))}
-            </div>
-
             <form onSubmit={handleSubmit} className="space-y-6">
-              <AnimatePresence mode="wait">
-                {resetStep === 'email' && (
-                  <motion.div
-                    key="email-step"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="space-y-4"
-                  >
-                    <div className="space-y-2">
-                      <Label htmlFor="reset-email" className="text-sm font-medium">Email Address</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input
-                          id="reset-email"
-                          type="email"
-                          placeholder="yourname@email.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="pl-12 h-12 rounded-xl border-2 focus:border-primary transition-colors"
-                        />
-                      </div>
-                      {errors.email && (
-                        <p className="text-sm text-destructive">{errors.email}</p>
-                      )}
-                    </div>
-                  </motion.div>
+              <div className="space-y-2">
+                <Label htmlFor="reset-email" className="text-sm font-medium">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="yourname@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-12 h-12 rounded-xl border-2 focus:border-primary transition-colors"
+                  />
+                </div>
+                {errors.email && (
+                  <p className="text-sm text-destructive">{errors.email}</p>
                 )}
-
-                {resetStep === 'otp' && (
-                  <motion.div
-                    key="otp-step"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="space-y-6"
-                  >
-                    <div className="flex flex-col items-center space-y-4">
-                      <p className="text-sm text-muted-foreground text-center">
-                        Code sent to <span className="font-medium text-foreground">{email}</span>
-                      </p>
-                      <InputOTP
-                        maxLength={6}
-                        value={otpCode}
-                        onChange={(value) => setOtpCode(value)}
-                        className="justify-center"
-                      >
-                        <InputOTPGroup className="gap-2">
-                          {[0, 1, 2, 3, 4, 5].map((index) => (
-                            <InputOTPSlot
-                              key={index}
-                              index={index}
-                              className="w-12 h-14 text-xl font-bold rounded-xl border-2 focus:border-primary transition-colors"
-                            />
-                          ))}
-                        </InputOTPGroup>
-                      </InputOTP>
-                      <button
-                        type="button"
-                        onClick={handleSendOtp}
-                        disabled={loading}
-                        className="text-sm text-primary hover:underline disabled:opacity-50"
-                      >
-                        Resend Code
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-
-                {resetStep === 'newPassword' && (
-                  <motion.div
-                    key="password-step"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="space-y-4"
-                  >
-                    <div className="space-y-2">
-                      <Label htmlFor="new-password" className="text-sm font-medium">New Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input
-                          id="new-password"
-                          type={showNewPassword ? 'text' : 'password'}
-                          placeholder="••••••••"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          className="pl-12 pr-12 h-12 rounded-xl border-2 focus:border-primary transition-colors"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </button>
-                      </div>
-                      {errors.newPassword && (
-                        <p className="text-sm text-destructive">{errors.newPassword}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirm-password" className="text-sm font-medium">Confirm Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input
-                          id="confirm-password"
-                          type={showNewPassword ? 'text' : 'password'}
-                          placeholder="••••••••"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="pl-12 h-12 rounded-xl border-2 focus:border-primary transition-colors"
-                        />
-                      </div>
-                      {errors.confirmPassword && (
-                        <p className="text-sm text-destructive">{errors.confirmPassword}</p>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      Use at least 8 characters with a mix of letters and numbers
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              </div>
 
               <AnimatedButton
                 type="submit"
                 className="w-full gradient-primary text-primary-foreground font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all"
-                disabled={loading || (resetStep === 'otp' && otpCode.length !== 6)}
+                disabled={loading}
               >
                 {loading ? (
                   <motion.div
@@ -751,12 +539,8 @@ export default function AuthPage() {
                     transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                     className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full"
                   />
-                ) : resetStep === 'email' ? (
-                  'Send Verification Code'
-                ) : resetStep === 'otp' ? (
-                  'Verify Code'
                 ) : (
-                  'Reset Password'
+                  'Send Reset Link'
                 )}
               </AnimatedButton>
             </form>
