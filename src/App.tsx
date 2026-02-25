@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import StudentDashboard from "./pages/StudentDashboard";
 import CommandCenter from "./pages/CommandCenter";
 import StaffDashboard from "./pages/StaffDashboard";
+import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -71,6 +72,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<RedirectByRole />} />
         <Route path="/auth" element={<Auth />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route
           path="/dashboard"
           element={
