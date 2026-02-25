@@ -17,15 +17,31 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [sessionReady, setSessionReady] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     // Listen for the PASSWORD_RECOVERY event from the magic link
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        // User arrived via recovery link, ready to set new password
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        setSessionReady(true);
+        setInitializing(false);
+      } else if (event === 'SIGNED_IN' && session) {
+        // Recovery token may arrive as SIGNED_IN in some cases
+        setSessionReady(true);
+        setInitializing(false);
       }
+    });
+
+    // Also check if there's already a session (e.g. token was already exchanged)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSessionReady(true);
+      }
+      // Give a moment for the auth state change to fire from the URL hash
+      setTimeout(() => setInitializing(false), 2000);
     });
 
     return () => subscription.unsubscribe();
@@ -100,6 +116,57 @@ export default function ResetPassword() {
             <AnimatedButton
               onClick={() => navigate('/auth')}
               className="w-full gradient-primary text-primary-foreground font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all"
+            >
+              Back to Sign In
+            </AnimatedButton>
+          </div>
+        </motion.div>
+      </PageTransition>
+    );
+  }
+
+  // Show loading while waiting for recovery session
+  if (initializing) {
+    return (
+      <PageTransition className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="absolute top-4 right-4">
+          <ThemeToggle />
+        </div>
+        <div className="flex flex-col items-center gap-4">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full"
+          />
+          <p className="text-muted-foreground text-sm">Verifying reset link...</p>
+        </div>
+      </PageTransition>
+    );
+  }
+
+  // Session not established - invalid or expired link
+  if (!sessionReady) {
+    return (
+      <PageTransition className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="absolute top-4 right-4">
+          <ThemeToggle />
+        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md"
+        >
+          <div className="glass-card rounded-3xl p-8 shadow-2xl text-center border border-border/50">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-destructive/10 mb-4">
+              <Lock className="w-8 h-8 text-destructive" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-3">Invalid or Expired Link</h1>
+            <p className="text-muted-foreground mb-6 text-sm">
+              This password reset link is invalid or has expired. Please request a new one.
+            </p>
+            <AnimatedButton
+              onClick={() => navigate('/auth')}
+              className="w-full gradient-primary text-primary-foreground font-semibold py-3 rounded-xl"
             >
               Back to Sign In
             </AnimatedButton>
