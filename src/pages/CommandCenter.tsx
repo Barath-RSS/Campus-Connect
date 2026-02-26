@@ -5,7 +5,8 @@ import {
   Search, Filter, MapPin, ExternalLink, Bell,
   ChevronRight, AlertCircle, Loader2, Send, Eye,
   UserCheck, UserX, Users, Download, Trash2, 
-  PieChart as PieChartIcon, Database, HardDrive
+  PieChart as PieChartIcon, Database, HardDrive,
+  Wrench, Phone
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -66,6 +67,15 @@ interface Notification {
   timestamp: Date;
 }
 
+interface StaffEmployee {
+  user_id: string;
+  full_name: string | null;
+  contact_number: string | null;
+  emp_id: string | null;
+  resolved_reports: Report[];
+  active_reports: Report[];
+}
+
 const CHART_COLORS = {
   pending: 'hsl(var(--warning))',
   investigating: 'hsl(var(--primary))',
@@ -92,6 +102,8 @@ export default function CommandCenter() {
   const [clearingStorage, setClearingStorage] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [storageInfo, setStorageInfo] = useState<{ used: number; fileCount: number } | null>(null);
+  const [staffEmployees, setStaffEmployees] = useState<StaffEmployee[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(true);
 
   const { signOut } = useAuth();
   const { toast } = useToast();
@@ -99,6 +111,7 @@ export default function CommandCenter() {
   useEffect(() => {
     fetchReports();
     fetchAccessRequests();
+    fetchStaffEmployees();
     checkStorageUsage();
 
     // Subscribe to real-time updates for new reports
@@ -218,12 +231,15 @@ export default function CommandCenter() {
 
       if (updateError) throw updateError;
 
-      // If approved, update user role to official (use upsert in case the row doesn't exist)
+      // If approved, determine whether this is a staff or official request
       if (action === 'approved') {
-        // Update first (handles duplicates safely); if nothing was updated, fall back to insert.
+        const request = accessRequests.find(r => r.id === requestId);
+        const isStaffRequest = request?.reason?.startsWith('[Service Staff]');
+        const targetRole = isStaffRequest ? 'staff' : 'official';
+
         const { data: updatedRoles, error: updateRoleError } = await supabase
           .from('user_roles')
-          .update({ role: 'official' })
+          .update({ role: targetRole })
           .eq('user_id', userId)
           .select('id');
 
@@ -232,7 +248,7 @@ export default function CommandCenter() {
         if (!updatedRoles || updatedRoles.length === 0) {
           const { error: insertError } = await supabase
             .from('user_roles')
-            .insert({ user_id: userId, role: 'official' });
+            .insert({ user_id: userId, role: targetRole as any });
 
           if (insertError) throw insertError;
         }
@@ -332,6 +348,64 @@ export default function CommandCenter() {
 
   const openGoogleMaps = (lat: number, lng: number) => {
     window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+  };
+
+  const fetchStaffEmployees = async () => {
+    setLoadingStaff(true);
+    try {
+      // Get all staff user_ids
+      const { data: staffRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'staff' as any);
+
+      if (rolesError || !staffRoles) {
+        setStaffEmployees([]);
+        setLoadingStaff(false);
+        return;
+      }
+
+      const staffUserIds = staffRoles.map(r => r.user_id);
+      if (staffUserIds.length === 0) {
+        setStaffEmployees([]);
+        setLoadingStaff(false);
+        return;
+      }
+
+      // Get profiles for staff
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, contact_number, emp_id')
+        .in('user_id', staffUserIds);
+
+      // Get all reports (already fetched in `reports` state, but we need fresh data for staff-specific view)
+      const { data: allReports } = await supabase
+        .from('reports')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const employees: StaffEmployee[] = staffUserIds.map(uid => {
+        const profile = (profiles || []).find(p => p.user_id === uid);
+        // Staff resolved reports = reports where status is 'resolved' and have completion_image_url
+        // We consider all resolved reports as potentially handled by staff
+        const staffReports = (allReports || []).filter(r => r.status === 'resolved' && r.completion_image_url);
+        const activeReports = (allReports || []).filter(r => r.status === 'investigating');
+        
+        return {
+          user_id: uid,
+          full_name: profile?.full_name || 'Unknown',
+          contact_number: (profile as any)?.contact_number || null,
+          emp_id: (profile as any)?.emp_id || null,
+          resolved_reports: staffReports as Report[],
+          active_reports: activeReports as Report[],
+        };
+      });
+
+      setStaffEmployees(employees);
+    } catch (e) {
+      console.error('Error fetching staff:', e);
+    }
+    setLoadingStaff(false);
   };
 
 
@@ -974,9 +1048,9 @@ export default function CommandCenter() {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
-        {/* Tabs for Reports, Analytics, and Official Requests */}
+        {/* Tabs for Reports, Analytics, Official Requests, and Employees */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="reports" className="flex items-center gap-1 sm:gap-2">
               <FileText className="w-4 h-4" />
               <span className="hidden sm:inline">Reports</span>
@@ -993,6 +1067,10 @@ export default function CommandCenter() {
                   {pendingRequests.length}
                 </span>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="employees" className="flex items-center gap-1 sm:gap-2">
+              <Wrench className="w-4 h-4" />
+              <span className="hidden sm:inline">Employees</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1538,6 +1616,110 @@ export default function CommandCenter() {
                 </div>
               </div>
             )}
+          </TabsContent>
+
+          {/* Employees Tab */}
+          <TabsContent value="employees" className="space-y-6 mt-6">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-primary" />
+                Service Staff Employees ({staffEmployees.length})
+              </h2>
+
+              {loadingStaff ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              ) : staffEmployees.length === 0 ? (
+                <div className="text-center py-12 border border-border rounded-xl">
+                  <Wrench className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">No service staff employees found</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {staffEmployees.map((employee) => (
+                    <motion.div
+                      key={employee.user_id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-xl border border-border bg-card overflow-hidden"
+                    >
+                      {/* Employee Header */}
+                      <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <Wrench className="w-6 h-6 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-foreground text-lg">{employee.full_name || 'Unknown'}</p>
+                            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-0.5">
+                              {employee.emp_id && (
+                                <span className="flex items-center gap-1">
+                                  <Badge variant="outline" className="text-xs">{employee.emp_id}</Badge>
+                                </span>
+                              )}
+                              {employee.contact_number && (
+                                <span className="flex items-center gap-1">
+                                  <Phone className="w-3 h-3" />
+                                  {employee.contact_number}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <div className="text-center px-3 py-1.5 rounded-lg bg-success/10">
+                            <p className="text-lg font-bold text-success">{employee.resolved_reports.length}</p>
+                            <p className="text-xs text-muted-foreground">Resolved</p>
+                          </div>
+                          <div className="text-center px-3 py-1.5 rounded-lg bg-primary/10">
+                            <p className="text-lg font-bold text-primary">{employee.active_reports.length}</p>
+                            <p className="text-xs text-muted-foreground">Active</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Task Details */}
+                      {(employee.resolved_reports.length > 0 || employee.active_reports.length > 0) && (
+                        <div className="p-4 sm:p-5 space-y-3">
+                          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Recent Tasks</p>
+                          <div className="space-y-2">
+                            {[...employee.active_reports, ...employee.resolved_reports].slice(0, 5).map((report) => (
+                              <div
+                                key={report.id}
+                                className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-foreground capitalize truncate">
+                                    {report.sub_category.replace(/_/g, ' ')}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate">{report.description}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {new Date(report.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  </p>
+                                </div>
+                                <Badge className={getStatusColor(report.status)}>
+                                  {getStatusIcon(report.status)}
+                                  <span className="ml-1 capitalize">{report.status}</span>
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                          {employee.contact_number && (
+                            <div className="pt-2 border-t border-border/50">
+                              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                <Phone className="w-3 h-3" />
+                                Contact: <span className="font-medium text-foreground">{employee.contact_number}</span>
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </main>
