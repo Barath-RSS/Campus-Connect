@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { z } from 'zod';
-import { Shield, Eye, EyeOff, AlertTriangle, Mail, Lock, User, LayoutDashboard, Command, FileText, Hash, GraduationCap, Briefcase, ArrowLeft, CheckCircle2, Sparkles, Wrench } from 'lucide-react';
+import { Shield, Eye, EyeOff, AlertTriangle, Mail, Lock, User, LayoutDashboard, Command, FileText, Hash, GraduationCap, Briefcase, ArrowLeft, CheckCircle2, Sparkles, Wrench, Phone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -19,6 +19,8 @@ const emailSchema = z.string().email('Invalid email format').max(255);
 const passwordSchema = z.string().min(8, 'Use a stronger password (minimum 8 characters)').max(128);
 const nameSchema = z.string().min(2, 'Name must be at least 2 characters').max(100);
 const registerNoSchema = z.string().min(5, 'Register No must be at least 5 characters').max(20);
+const empIdSchema = z.string().min(2, 'EMP ID must be at least 2 characters').max(30);
+const contactSchema = z.string().min(10, 'Contact number must be at least 10 digits').max(15);
 const officialEmailSchema = z.string().email('Invalid email format').refine(
   (email) => email.endsWith('@sathyabama.ac.in'),
   { message: 'Officials must use @sathyabama.ac.in email' }
@@ -38,6 +40,8 @@ export default function AuthPage() {
   const [userType, setUserType] = useState<UserType>('student');
   const [email, setEmail] = useState('');
   const [registerNo, setRegisterNo] = useState('');
+  const [empId, setEmpId] = useState('');
+  const [contactNumber, setContactNumber] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -47,7 +51,7 @@ export default function AuthPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string; registerNo?: string; newPassword?: string; confirmPassword?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string; registerNo?: string; empId?: string; contactNumber?: string; newPassword?: string; confirmPassword?: string }>({});
   const [officialRequestSubmitted, setOfficialRequestSubmitted] = useState(false);
 
   const { signIn, signUp, user, role, loading: authLoading } = useAuth();
@@ -81,6 +85,8 @@ export default function AuthPage() {
   useEffect(() => {
     setEmail('');
     setRegisterNo('');
+    setEmpId('');
+    setContactNumber('');
     setPassword('');
     setFullName('');
     setAccessRequestReason('');
@@ -116,6 +122,11 @@ export default function AuthPage() {
         if (!registerNoResult.success) {
           newErrors.registerNo = registerNoResult.error.errors[0].message;
         }
+      } else if (userType === 'staff') {
+        const empIdResult = empIdSchema.safeParse(empId);
+        if (!empIdResult.success) {
+          newErrors.empId = empIdResult.error.errors[0].message;
+        }
       } else {
         const emailResult = officialEmailSchema.safeParse(email);
         if (!emailResult.success) {
@@ -144,6 +155,15 @@ export default function AuthPage() {
         const registerNoResult = registerNoSchema.safeParse(registerNo);
         if (!registerNoResult.success) {
           newErrors.registerNo = registerNoResult.error.errors[0].message;
+        }
+      } else if (userType === 'staff') {
+        const empIdResult = empIdSchema.safeParse(empId);
+        if (!empIdResult.success) {
+          newErrors.empId = empIdResult.error.errors[0].message;
+        }
+        const contactResult = contactSchema.safeParse(contactNumber);
+        if (!contactResult.success) {
+          newErrors.contactNumber = contactResult.error.errors[0].message;
         }
       } else {
         const emailResult = officialEmailSchema.safeParse(email);
@@ -213,6 +233,20 @@ export default function AuthPage() {
 
           if (!data?.email) {
             throw new Error('Register number not found. Please sign up first.');
+          }
+
+          loginEmail = data.email;
+        } else if (userType === 'staff') {
+          const { data, error: lookupError } = await supabase.functions.invoke('staff-lookup', {
+            body: { empId: empId.trim() },
+          });
+
+          if (lookupError) {
+            throw new Error('Unable to find your account right now. Please try again.');
+          }
+
+          if (!data?.email) {
+            throw new Error('EMP ID not found. Please sign up first.');
           }
 
           loginEmail = data.email;
@@ -305,6 +339,7 @@ export default function AuthPage() {
         }
       } else {
         const formattedRegisterNo = userType === 'student' ? registerNo.trim().toUpperCase() : null;
+        const formattedEmpId = userType === 'staff' ? empId.trim().toUpperCase() : null;
 
         if (userType === 'student' && formattedRegisterNo) {
           const { data: existing, error: lookupError } = await supabase.functions.invoke('student-lookup', {
@@ -315,17 +350,34 @@ export default function AuthPage() {
             throw new Error('This register number is already registered. Please sign in instead.');
           }
         }
+
+        if (userType === 'staff' && formattedEmpId) {
+          const { data: existing, error: lookupError } = await supabase.functions.invoke('staff-lookup', {
+            body: { empId: formattedEmpId },
+          });
+
+          if (!lookupError && existing?.email) {
+            throw new Error('This EMP ID is already registered. Please sign in instead.');
+          }
+        }
+
+        // For staff, auto-generate an email from emp_id
+        const signupEmail = userType === 'staff' 
+          ? `${formattedEmpId!.toLowerCase()}@staff.campusconnect.local`
+          : email;
         
         const { error, data } = await signUp(
-          email, 
+          signupEmail, 
           password, 
           fullName, 
-          formattedRegisterNo || ''
+          formattedRegisterNo || '',
+          userType === 'staff' ? contactNumber : undefined,
+          formattedEmpId || undefined,
         );
         
         if (error) {
           if (error.message.includes('already registered')) {
-            throw new Error('This email is already registered. Please sign in instead.');
+            throw new Error('This account is already registered. Please sign in instead.');
           }
           throw error;
         }
@@ -336,9 +388,9 @@ export default function AuthPage() {
             .insert({
               user_id: data.user.id,
               full_name: fullName,
-              email: email,
+              email: signupEmail,
               reason: userType === 'staff' 
-                ? `[Service Staff] ${accessRequestReason || 'Service staff access request'}`
+                ? `[Service Staff] EMP ID: ${formattedEmpId} | Contact: ${contactNumber} | ${accessRequestReason || 'Service staff access request'}`
                 : accessRequestReason || 'Official access request',
               status: 'pending'
             });
@@ -588,8 +640,8 @@ export default function AuthPage() {
             </h1>
             <p className="text-sm text-muted-foreground">
               {isLogin
-                ? `Sign in as ${userType === 'student' ? 'Student' : 'Official'}`
-                : `Register as ${userType === 'student' ? 'Student' : 'Official'}`}
+                ? `Sign in as ${userType === 'student' ? 'Student' : userType === 'staff' ? 'Service Staff' : 'Official'}`
+                : `Register as ${userType === 'student' ? 'Student' : userType === 'staff' ? 'Service Staff' : 'Official'}`}
             </p>
           </div>
 
@@ -668,7 +720,7 @@ export default function AuthPage() {
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-foreground">Service Staff Portal</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {isLogin ? 'Login with your personal email' : 'Request staff access (admin approval required)'}
+                      {isLogin ? 'Login with your EMP ID' : 'Register with EMP ID & Contact'}
                     </p>
                   </div>
                 </>
@@ -715,8 +767,8 @@ export default function AuthPage() {
               </motion.div>
             )}
 
-            {/* Email Field */}
-            {(userType === 'official' || userType === 'staff' || !isLogin) && (
+            {/* Email Field - not for staff */}
+            {(userType === 'official' || (userType === 'student' && !isLogin)) && (
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium">
                   {userType === 'official' ? 'Official Email' : 'Email'}
@@ -757,6 +809,54 @@ export default function AuthPage() {
                   <p className="text-sm text-destructive">{errors.registerNo}</p>
                 )}
               </div>
+            )}
+
+            {/* EMP ID (Staff - login and signup) */}
+            {userType === 'staff' && (
+              <div className="space-y-2">
+                <Label htmlFor="empId" className="text-sm font-medium">EMP ID</Label>
+                <div className="relative">
+                  <Hash className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="empId"
+                    type="text"
+                    placeholder="e.g., EMP001"
+                    value={empId}
+                    onChange={(e) => setEmpId(e.target.value.toUpperCase())}
+                    className="pl-12 h-12 rounded-xl border-2 focus:border-primary transition-colors uppercase"
+                  />
+                </div>
+                {errors.empId && (
+                  <p className="text-sm text-destructive">{errors.empId}</p>
+                )}
+              </div>
+            )}
+
+            {/* Contact Number (Staff signup only) */}
+            {userType === 'staff' && !isLogin && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-2"
+              >
+                <Label htmlFor="contactNumber" className="text-sm font-medium">Contact Number</Label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="contactNumber"
+                    type="tel"
+                    placeholder="e.g., 9876543210"
+                    value={contactNumber}
+                    onChange={(e) => setContactNumber(e.target.value.replace(/\D/g, ''))}
+                    className="pl-12 h-12 rounded-xl border-2 focus:border-primary transition-colors"
+                    maxLength={15}
+                  />
+                </div>
+                {errors.contactNumber && (
+                  <p className="text-sm text-destructive">{errors.contactNumber}</p>
+                )}
+              </motion.div>
             )}
 
             {/* Reason for Official Signup */}

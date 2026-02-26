@@ -10,7 +10,7 @@ interface AuthContextType {
   role: AppRole;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string, registerNo?: string) => Promise<{ error: Error | null; data: { user: User | null } | null }>;
+  signUp: (email: string, password: string, fullName: string, registerNo?: string, contactNumber?: string, empId?: string) => Promise<{ error: Error | null; data: { user: User | null } | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
 }
@@ -95,16 +95,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-  const signUp = async (email: string, password: string, fullName: string, registerNo?: string) => {
+  const signUp = async (email: string, password: string, fullName: string, registerNo?: string, contactNumber?: string, empId?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const metadata: Record<string, string> = {
       full_name: fullName,
     };
     
-    // Only include register_no if provided (students only)
     if (registerNo && registerNo.trim()) {
       metadata.register_no = registerNo.trim().toUpperCase();
+    }
+    
+    if (contactNumber && contactNumber.trim()) {
+      metadata.contact_number = contactNumber.trim();
+    }
+    
+    if (empId && empId.trim()) {
+      metadata.emp_id = empId.trim().toUpperCase();
     }
     
     const { data, error } = await supabase.auth.signUp({
