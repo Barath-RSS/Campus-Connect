@@ -378,7 +378,7 @@ export default function CommandCenter() {
         .select('user_id, full_name, contact_number, emp_id')
         .in('user_id', staffUserIds);
 
-      // Get all reports (already fetched in `reports` state, but we need fresh data for staff-specific view)
+      // Get all reports that have resolved_by set to a staff member
       const { data: allReports } = await supabase
         .from('reports')
         .select('*')
@@ -386,9 +386,9 @@ export default function CommandCenter() {
 
       const employees: StaffEmployee[] = staffUserIds.map(uid => {
         const profile = (profiles || []).find(p => p.user_id === uid);
-        // Staff resolved reports = reports where status is 'resolved' and have completion_image_url
-        // We consider all resolved reports as potentially handled by staff
-        const staffReports = (allReports || []).filter(r => r.status === 'resolved' && r.completion_image_url);
+        // Filter reports resolved by this specific staff member
+        const resolvedByThisStaff = (allReports || []).filter(r => (r as any).resolved_by === uid && r.status === 'resolved');
+        // Active reports assigned to investigating status (visible to all staff)
         const activeReports = (allReports || []).filter(r => r.status === 'investigating');
         
         return {
@@ -396,7 +396,7 @@ export default function CommandCenter() {
           full_name: profile?.full_name || 'Unknown',
           contact_number: (profile as any)?.contact_number || null,
           emp_id: (profile as any)?.emp_id || null,
-          resolved_reports: staffReports as Report[],
+          resolved_reports: resolvedByThisStaff as Report[],
           active_reports: activeReports as Report[],
         };
       });

@@ -42,13 +42,12 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
+    const { data: userData, error: userError } = await authClient.auth.getUser();
+    if (userError || !userData?.user) {
       return json(401, { error: "Unauthorized" });
     }
 
-    const userId = claimsData.claims.sub;
+    const userId = userData.user.id;
 
     // Elevated client
     const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
@@ -66,7 +65,7 @@ serve(async (req) => {
     // Fetch all RESOLVED reports to get their image URLs
     const { data: resolvedReports, error: fetchError } = await admin
       .from("reports")
-      .select("id, image_url, completion_image_url")
+      .select("id, image_url, image_url_2, image_url_3, completion_image_url")
       .eq("status", "resolved");
 
     if (fetchError) throw fetchError;
@@ -76,17 +75,13 @@ serve(async (req) => {
     // Collect image paths to delete from storage
     const imagePaths: string[] = [];
     for (const report of resolvedReportsList) {
-      if (report.image_url) {
-        // Extract file path from public URL
-        const urlParts = report.image_url.split("/issue-images/");
-        if (urlParts.length > 1) {
-          imagePaths.push(urlParts[1]);
-        }
-      }
-      if (report.completion_image_url) {
-        const urlParts = report.completion_image_url.split("/issue-images/");
-        if (urlParts.length > 1) {
-          imagePaths.push(urlParts[1]);
+      for (const urlField of ['image_url', 'image_url_2', 'image_url_3', 'completion_image_url']) {
+        const url = (report as Record<string, unknown>)[urlField] as string | null;
+        if (url) {
+          const urlParts = url.split("/issue-images/");
+          if (urlParts.length > 1) {
+            imagePaths.push(urlParts[1]);
+          }
         }
       }
     }
