@@ -229,10 +229,10 @@ export default function StudentDashboard() {
       return;
     }
 
-    if (!imageFile) {
+    if (imageFiles.length === 0) {
       toast({
         title: 'Photo Required',
-        description: 'Please capture a photo of the issue.',
+        description: 'Please capture at least one photo of the issue.',
         variant: 'destructive',
       });
       return;
@@ -241,9 +241,11 @@ export default function StudentDashboard() {
     setLoading(true);
 
     try {
-      let imageUrl = null;
-      if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
+      // Upload all images
+      const imageUrls: (string | null)[] = [];
+      for (const file of imageFiles) {
+        const url = await uploadImage(file);
+        imageUrls.push(url);
       }
 
       const { error } = await supabase.from('reports').insert({
@@ -251,12 +253,14 @@ export default function StudentDashboard() {
         category: activeTab,
         sub_category: selectedCategory,
         description: description.trim(),
-        image_url: imageUrl,
+        image_url: imageUrls[0] || null,
+        image_url_2: imageUrls[1] || null,
+        image_url_3: imageUrls[2] || null,
         landmark: landmark.trim() || null,
         is_anonymous: activeTab === 'personal' ? isAnonymous : false,
         time_of_incident: activeTab === 'security' && timeOfIncident ? new Date(timeOfIncident).toISOString() : null,
         status: 'pending',
-      });
+      } as any);
 
       if (error) throw error;
 
@@ -268,8 +272,8 @@ export default function StudentDashboard() {
       // Reset form
       setSelectedCategory('');
       setDescription('');
-      setImageFile(null);
-      setImagePreview(null);
+      setImageFiles([]);
+      setImagePreviews([]);
       setTimeOfIncident('');
       setLandmark('');
       fetchReports();
@@ -616,9 +620,31 @@ export default function StudentDashboard() {
 
               {/* Photo Capture */}
               <div className="space-y-3">
-                <Label>Photo Evidence</Label>
+                <Label>Photo Evidence ({imagePreviews.length}/3)</Label>
                 <canvas ref={canvasRef} className="hidden" />
                 
+                {/* Show captured photos */}
+                {imagePreviews.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {imagePreviews.map((preview, idx) => (
+                      <div key={idx} className="relative rounded-xl overflow-hidden border border-border">
+                        <img src={preview} alt={`Captured ${idx + 1}`} className="w-full h-24 object-cover" />
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-1 right-1 h-6 w-6 p-0 rounded-full"
+                          onClick={() => {
+                            setImageFiles(prev => prev.filter((_, i) => i !== idx));
+                            setImagePreviews(prev => prev.filter((_, i) => i !== idx));
+                          }}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {capturingPhoto ? (
                   <div className="relative rounded-xl overflow-hidden border border-border">
                     <video
@@ -629,56 +655,25 @@ export default function StudentDashboard() {
                       className="w-full h-64 object-cover"
                     />
                     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={cancelCamera}
-                      >
-                        Cancel
-                      </Button>
-                      <AnimatedButton
-                        onClick={capturePhoto}
-                        className="gradient-primary text-primary-foreground"
-                      >
+                      <Button variant="secondary" size="sm" onClick={cancelCamera}>Cancel</Button>
+                      <AnimatedButton onClick={capturePhoto} className="gradient-primary text-primary-foreground">
                         <Camera className="w-4 h-4 mr-2" />
                         Capture
                       </AnimatedButton>
                     </div>
                   </div>
-                ) : imagePreview ? (
-                  <div className="relative rounded-xl overflow-hidden border border-border">
-                    <img
-                      src={imagePreview}
-                      alt="Captured"
-                      className="w-full h-48 object-cover"
-                    />
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="absolute bottom-3 right-3"
-                      onClick={() => {
-                        setImageFile(null);
-                        setImagePreview(null);
-                        setLandmark('');
-                        startCamera();
-                      }}
-                    >
-                      <Camera className="w-4 h-4 mr-2" />
-                      Retake
-                    </Button>
-                  </div>
-                ) : (
+                ) : imagePreviews.length < 3 ? (
                   <motion.button
                     whileTap={{ scale: 0.98 }}
                     onClick={startCamera}
-                    className="w-full h-40 rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-3"
+                    className="w-full h-32 rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2"
                   >
-                    <Camera className="w-10 h-10 text-muted-foreground" />
+                    <Camera className="w-8 h-8 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      Tap to open camera
+                      {imagePreviews.length === 0 ? 'Tap to open camera' : `Add another photo (${imagePreviews.length}/3)`}
                     </span>
                   </motion.button>
-                )}
+                ) : null}
               </div>
 
               {/* Landmark Input */}
