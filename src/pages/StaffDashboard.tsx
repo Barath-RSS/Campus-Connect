@@ -158,14 +158,16 @@ export default function StaffDashboard() {
       const { data: urlData } = supabase.storage.from('issue-images').getPublicUrl(fileName);
       const completionImageUrl = urlData.publicUrl;
 
-      // Update report: resolved + completion image
+      // Update report: resolved + completion image + resolved_by
+      const { data: currentUser } = await supabase.auth.getUser();
       const { error: updateError } = await supabase
         .from('reports')
         .update({
           status: 'resolved',
           completion_image_url: completionImageUrl,
           official_response: selectedReport.official_response || 'Work completed by service staff.',
-        })
+          resolved_by: currentUser?.user?.id || null,
+        } as any)
         .eq('id', selectedReport.id);
 
       if (updateError) throw updateError;

@@ -124,11 +124,14 @@ export type Database = {
           description: string
           id: string
           image_url: string | null
+          image_url_2: string | null
+          image_url_3: string | null
           is_anonymous: boolean
           landmark: string | null
           lat: number | null
           lng: number | null
           official_response: string | null
+          resolved_by: string | null
           status: string
           sub_category: string
           time_of_incident: string | null
@@ -142,11 +145,14 @@ export type Database = {
           description: string
           id?: string
           image_url?: string | null
+          image_url_2?: string | null
+          image_url_3?: string | null
           is_anonymous?: boolean
           landmark?: string | null
           lat?: number | null
           lng?: number | null
           official_response?: string | null
+          resolved_by?: string | null
           status?: string
           sub_category: string
           time_of_incident?: string | null
@@ -160,11 +166,14 @@ export type Database = {
           description?: string
           id?: string
           image_url?: string | null
+          image_url_2?: string | null
+          image_url_3?: string | null
           is_anonymous?: boolean
           landmark?: string | null
           lat?: number | null
           lng?: number | null
           official_response?: string | null
+          resolved_by?: string | null
           status?: string
           sub_category?: string
           time_of_incident?: string | null

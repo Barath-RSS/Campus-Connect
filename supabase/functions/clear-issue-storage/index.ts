@@ -42,13 +42,12 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
+    const { data: userData, error: userError } = await authClient.auth.getUser();
+    if (userError || !userData?.user) {
       return json(401, { error: "Unauthorized" });
     }
 
-    const userId = claimsData.claims.sub;
+    const userId = userData.user.id;
 
     // Elevated client
     const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
