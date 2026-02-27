@@ -67,8 +67,8 @@ export default function StudentDashboard() {
   const [description, setDescription] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [timeOfIncident, setTimeOfIncident] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [landmark, setLandmark] = useState('');
   const [capturingPhoto, setCapturingPhoto] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -157,12 +157,8 @@ export default function StudentDashboard() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     
-    // Check if video is ready
     if (video.readyState < 2) {
-      toast({
-        title: 'Please wait',
-        description: 'Camera is still loading...',
-      });
+      toast({ title: 'Please wait', description: 'Camera is still loading...' });
       return;
     }
     
@@ -173,14 +169,13 @@ export default function StudentDashboard() {
     if (ctx) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       
-      // Get image as blob
       canvas.toBlob((blob) => {
         if (blob) {
           const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
-          setImageFile(file);
-          setImagePreview(canvas.toDataURL('image/jpeg'));
+          setImageFiles(prev => [...prev, file]);
+          setImagePreviews(prev => [...prev, canvas.toDataURL('image/jpeg')]);
           
-          // Stop the camera
+          // Stop camera after capture
           if (streamRef.current) {
             streamRef.current.getTracks().forEach(track => track.stop());
             streamRef.current = null;
@@ -188,8 +183,8 @@ export default function StudentDashboard() {
           setCapturingPhoto(false);
           
           toast({
-            title: 'Photo Captured',
-            description: 'Please enter the landmark/location details below.',
+            title: `Photo ${imageFiles.length + 1} Captured`,
+            description: imageFiles.length < 2 ? 'You can add more photos (up to 3).' : 'Maximum photos reached.',
           });
         }
       }, 'image/jpeg', 0.9);
