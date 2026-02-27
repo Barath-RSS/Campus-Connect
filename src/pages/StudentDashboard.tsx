@@ -698,7 +698,7 @@ export default function StudentDashboard() {
               {/* Submit Button */}
               <AnimatedButton
                 onClick={handleSubmit}
-                disabled={loading || !selectedCategory || !description.trim()}
+                disabled={loading || !selectedCategory || !description.trim() || imageFiles.length === 0}
                 className="w-full gradient-primary text-primary-foreground h-12"
               >
                 {loading ? (
