@@ -47,6 +47,8 @@ interface Report {
   sub_category: string;
   description: string;
   image_url: string | null;
+  image_url_2: string | null;
+  image_url_3: string | null;
   completion_image_url: string | null;
   lat: number | null;
   lng: number | null;
@@ -55,7 +57,6 @@ interface Report {
   is_anonymous: boolean;
   time_of_incident: string | null;
   official_response: string | null;
-  // Submitter info (fetched via join)
   submitter_name?: string | null;
   submitter_register_no?: string | null;
 }
@@ -481,8 +482,9 @@ export default function CommandCenter() {
       let yPosition = 32;
       
       // Separate reports by whether they have any images
-      const reportsWithImages = reports.filter(r => r.image_url || r.completion_image_url);
-      const reportsWithoutImages = reports.filter(r => !r.image_url && !r.completion_image_url);
+      const hasAnyImage = (r: Report) => r.image_url || r.image_url_2 || r.image_url_3 || r.completion_image_url;
+      const reportsWithImages = reports.filter(r => hasAnyImage(r));
+      const reportsWithoutImages = reports.filter(r => !hasAnyImage(r));
       
       // Helper to safely get text (no null/undefined)
       const safeText = (val: string | null | undefined, fallback: string = 'N/A'): string => {
@@ -665,9 +667,9 @@ export default function CommandCenter() {
         
         for (const report of reportsWithImages) {
           const originalIndex = reports.indexOf(report);
-          const hasReportImg = !!report.image_url;
+          const reportImages = [report.image_url, report.image_url_2, report.image_url_3].filter(Boolean) as string[];
           const hasCompletionImg = !!report.completion_image_url;
-          const bothImages = hasReportImg && hasCompletionImg;
+          const totalImages = reportImages.length + (hasCompletionImg ? 1 : 0);
           
           if (yPosition > pageHeight - 70) {
             doc.addPage();
@@ -766,62 +768,34 @@ export default function CommandCenter() {
             } catch { return null; }
           };
           
-          if (bothImages) {
-            // Two images stacked: report image on top, completion below
-            const singleImgH = 24;
-            
-            // Report image label + image
+          // Render all report images + completion image stacked
+          const allImgEntries: { url: string; label: string; labelColor: [number, number, number] }[] = [];
+          reportImages.forEach((url, i) => {
+            allImgEntries.push({ url, label: `REPORT IMAGE ${reportImages.length > 1 ? i + 1 : ''}`.trim(), labelColor: [100, 100, 100] });
+          });
+          if (hasCompletionImg) {
+            allImgEntries.push({ url: report.completion_image_url!, label: 'COMPLETION PHOTO', labelColor: [34, 150, 34] });
+          }
+
+          const imgH = allImgEntries.length >= 3 ? 16 : allImgEntries.length === 2 ? 24 : 50;
+          let imgY = startY;
+
+          for (const entry of allImgEntries) {
             doc.setFontSize(6);
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(100, 100, 100);
-            doc.text('REPORT IMAGE', imgAreaX, startY + 4);
-            const reportImgData = await loadImage(report.image_url!);
-            if (reportImgData) {
-              doc.addImage(reportImgData, 'JPEG', imgAreaX, startY + 5, imgAreaWidth, singleImgH);
-            } else {
-              doc.setFillColor(230, 230, 230);
-              doc.roundedRect(imgAreaX, startY + 5, imgAreaWidth, singleImgH, 1, 1, 'F');
-              doc.setFontSize(7);
-              doc.setTextColor(150, 150, 150);
-              doc.text('Image unavailable', imgAreaX + imgAreaWidth / 2, startY + 5 + singleImgH / 2, { align: 'center' });
-            }
-            
-            // Completion image label + image
-            doc.setFontSize(6);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(34, 150, 34);
-            doc.text('COMPLETION PHOTO', imgAreaX, startY + singleImgH + 9);
-            const compImgData = await loadImage(report.completion_image_url!);
-            if (compImgData) {
-              doc.addImage(compImgData, 'JPEG', imgAreaX, startY + singleImgH + 10, imgAreaWidth, singleImgH);
-            } else {
-              doc.setFillColor(230, 245, 230);
-              doc.roundedRect(imgAreaX, startY + singleImgH + 10, imgAreaWidth, singleImgH, 1, 1, 'F');
-              doc.setFontSize(7);
-              doc.setTextColor(150, 150, 150);
-              doc.text('Image unavailable', imgAreaX + imgAreaWidth / 2, startY + singleImgH + 10 + singleImgH / 2, { align: 'center' });
-            }
-          } else {
-            // Single image (report or completion)
-            const imgUrl = report.image_url || report.completion_image_url!;
-            const label = report.image_url ? 'REPORT IMAGE' : 'COMPLETION PHOTO';
-            const labelColor: [number, number, number] = report.image_url ? [100, 100, 100] : [34, 150, 34];
-            
-            doc.setFontSize(6);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(...labelColor);
-            doc.text(label, imgAreaX, startY + 4);
-            
-            const imgData = await loadImage(imgUrl);
+            doc.setTextColor(...entry.labelColor);
+            doc.text(entry.label, imgAreaX, imgY + 4);
+            const imgData = await loadImage(entry.url);
             if (imgData) {
-              doc.addImage(imgData, 'JPEG', imgAreaX, startY + 5, imgAreaWidth, 50);
+              doc.addImage(imgData, 'JPEG', imgAreaX, imgY + 5, imgAreaWidth, imgH);
             } else {
               doc.setFillColor(230, 230, 230);
-              doc.roundedRect(imgAreaX, startY + 5, imgAreaWidth, 50, 2, 2, 'F');
-              doc.setFontSize(8);
+              doc.roundedRect(imgAreaX, imgY + 5, imgAreaWidth, imgH, 1, 1, 'F');
+              doc.setFontSize(7);
               doc.setTextColor(150, 150, 150);
-              doc.text('Image unavailable', imgAreaX + imgAreaWidth / 2, startY + 30, { align: 'center' });
+              doc.text('Image unavailable', imgAreaX + imgAreaWidth / 2, imgY + 5 + imgH / 2, { align: 'center' });
             }
+            imgY += imgH + 4;
           }
           
           yPosition = startY + cardHeight + 5;
@@ -1738,14 +1712,37 @@ export default function CommandCenter() {
 
           {selectedReport && (
             <div className="mt-6 space-y-6">
-              {/* Image */}
-              {selectedReport.image_url && (
-                <div className="rounded-xl overflow-hidden border border-border">
-                  <img
-                    src={selectedReport.image_url}
-                    alt="Issue"
-                    className="w-full h-48 object-cover"
-                  />
+              {/* Images */}
+              {(selectedReport.image_url || selectedReport.image_url_2 || selectedReport.image_url_3) && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Report Photos</Label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {[selectedReport.image_url, selectedReport.image_url_2, selectedReport.image_url_3]
+                      .filter(Boolean)
+                      .map((url, i) => (
+                        <div key={i} className="rounded-xl overflow-hidden border border-border">
+                          <img
+                            src={url!}
+                            alt={`Issue photo ${i + 1}`}
+                            className="w-full h-48 object-cover"
+                          />
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Completion Image */}
+              {selectedReport.completion_image_url && (
+                <div className="space-y-2">
+                  <Label className="text-success">Completion Photo</Label>
+                  <div className="rounded-xl overflow-hidden border border-success/30">
+                    <img
+                      src={selectedReport.completion_image_url}
+                      alt="Completion"
+                      className="w-full h-48 object-cover"
+                    />
+                  </div>
                 </div>
               )}
 
