@@ -408,6 +408,113 @@ export default function CommandCenter() {
     }
     setLoadingStaff(false);
   };
+  // Export staff details to PDF
+  const exportStaffPdf = async () => {
+    if (staffEmployees.length === 0) {
+      toast({ title: 'No Staff', description: 'No staff employees to export.', variant: 'destructive' });
+      return;
+    }
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 10;
+      const contentWidth = pageWidth - margin * 2;
+
+      // Title
+      doc.setFillColor(124, 29, 62);
+      doc.rect(0, 0, pageWidth, 25, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SERVICE STAFF - EMPLOYEE REPORT', pageWidth / 2, 12, { align: 'center' });
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Generated: ${new Date().toLocaleString()} | Total Staff: ${staffEmployees.length}`, pageWidth / 2, 20, { align: 'center' });
+      
+      doc.setTextColor(0, 0, 0);
+      let y = 32;
+
+      for (const emp of staffEmployees) {
+        if (y > 250) { doc.addPage(); y = 15; }
+
+        // Header bar
+        doc.setFillColor(240, 240, 245);
+        doc.roundedRect(margin, y, contentWidth, 12, 2, 2, 'F');
+        doc.setFillColor(124, 29, 62);
+        doc.roundedRect(margin, y, 3, 12, 1, 1, 'F');
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(60, 60, 60);
+        doc.text(emp.full_name || 'Unknown', margin + 6, y + 8);
+        
+        // Badge info
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        const infoText = [emp.emp_id, emp.contact_number].filter(Boolean).join(' | ');
+        doc.text(infoText, margin + contentWidth - 3, y + 8, { align: 'right' });
+        y += 16;
+
+        // Stats
+        doc.setFontSize(8);
+        doc.setTextColor(34, 197, 94);
+        doc.text(`Resolved: ${emp.resolved_reports.length}`, margin + 6, y);
+        doc.setTextColor(124, 29, 62);
+        doc.text(`Active: ${emp.active_reports.length}`, margin + 50, y);
+        y += 7;
+
+        // Tasks list
+        const tasks = [...emp.resolved_reports, ...emp.active_reports].slice(0, 10);
+        if (tasks.length > 0) {
+          doc.setFontSize(7);
+          doc.setTextColor(80, 80, 80);
+          for (const task of tasks) {
+            if (y > 275) { doc.addPage(); y = 15; }
+            const status = task.status.toUpperCase();
+            const sub = task.sub_category.replace(/_/g, ' ');
+            const date = new Date(task.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            doc.text(`• [${status}] ${sub} — ${date}`, margin + 8, y);
+            y += 4.5;
+          }
+        }
+        y += 5;
+        doc.setDrawColor(220, 220, 220);
+        doc.line(margin, y, margin + contentWidth, y);
+        y += 5;
+      }
+
+      // Footer
+      const totalPages = doc.internal.pages.length - 1;
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Page ${i} of ${totalPages} | Campus Connect Staff Report`, pageWidth / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });
+      }
+
+      doc.save(`staff_report_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast({ title: '✅ Staff Report Exported', description: `${staffEmployees.length} staff exported to PDF.` });
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Export Failed', description: 'Could not export staff report.', variant: 'destructive' });
+    }
+  };
+
+  // Delete a staff member (remove their role, reverting to student)
+  const deleteStaffMember = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_roles')
+        .update({ role: 'student' as any })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      toast({ title: 'Staff Removed', description: 'Employee has been reverted to student role.' });
+      fetchStaffEmployees();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to remove staff member.', variant: 'destructive' });
+    }
+  };
 
 
   // Check storage usage
