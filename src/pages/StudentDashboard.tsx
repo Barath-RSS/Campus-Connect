@@ -201,6 +201,26 @@ export default function StudentDashboard() {
     setCapturingPhoto(false);
   };
 
+  const captureGps = () => {
+    if (!navigator.geolocation) {
+      toast({ title: 'GPS Not Available', description: 'Your browser does not support GPS.', variant: 'destructive' });
+      return;
+    }
+    setFetchingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGpsCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        setFetchingGps(false);
+        toast({ title: '📍 Location Captured', description: `Lat: ${position.coords.latitude.toFixed(6)}, Lng: ${position.coords.longitude.toFixed(6)}` });
+      },
+      (error) => {
+        setFetchingGps(false);
+        toast({ title: 'GPS Error', description: error.message || 'Could not get location.', variant: 'destructive' });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const uploadImage = async (file: File): Promise<string | null> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -259,6 +279,8 @@ export default function StudentDashboard() {
         image_url_2: imageUrls[1] || null,
         image_url_3: imageUrls[2] || null,
         landmark: landmark.trim() || null,
+        lat: gpsCoords?.lat || null,
+        lng: gpsCoords?.lng || null,
         is_anonymous: activeTab === 'personal' ? isAnonymous : false,
         time_of_incident: activeTab === 'security' && timeOfIncident ? new Date(timeOfIncident).toISOString() : null,
         status: 'pending',
@@ -278,6 +300,7 @@ export default function StudentDashboard() {
       setImagePreviews([]);
       setTimeOfIncident('');
       setLandmark('');
+      setGpsCoords(null);
       fetchReports();
     } catch (error: any) {
       toast({
