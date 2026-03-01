@@ -718,6 +718,30 @@ export default function StudentDashboard() {
                 <p className="text-xs text-muted-foreground">
                   Enter the specific location or nearest landmark where the issue occurred
                 </p>
+
+                {/* GPS Capture */}
+                <div className="mt-3 flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant={gpsCoords ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={captureGps}
+                    disabled={fetchingGps}
+                    className={gpsCoords ? 'bg-success text-success-foreground hover:bg-success/90' : ''}
+                  >
+                    {fetchingGps ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Navigation className="w-4 h-4 mr-2" />
+                    )}
+                    {gpsCoords ? 'Location Captured ✓' : 'Use GPS Location'}
+                  </Button>
+                  {gpsCoords && (
+                    <span className="text-xs text-muted-foreground">
+                      {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Submit Button */}
