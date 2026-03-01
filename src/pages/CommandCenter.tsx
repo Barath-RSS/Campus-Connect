@@ -582,6 +582,18 @@ export default function CommandCenter() {
         doc.text(safeText(report.landmark, 'Not specified').substring(0, 30), x + padding + 15, y);
         y += lineHeight;
         
+        // GPS coordinates link
+        if (report.lat && report.lng) {
+          doc.setFont('helvetica', 'bold');
+          doc.text('GPS:', x + padding, y);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(0, 0, 200);
+          const mapsUrl = `https://maps.google.com/?q=${report.lat},${report.lng}`;
+          doc.textWithLink(mapsUrl.substring(0, 45), x + padding + 8, y, { url: mapsUrl });
+          doc.setTextColor(80, 80, 80);
+          y += lineHeight;
+        }
+        
         // Description
         doc.setFont('helvetica', 'bold');
         doc.text('Description:', x + padding, y);
@@ -741,6 +753,18 @@ export default function CommandCenter() {
           doc.setFont('helvetica', 'normal');
           doc.text(safeText(report.landmark, 'Not specified').substring(0, 35), leftPad + 15, infoY);
           infoY += 5;
+          
+          // GPS coordinates link in image reports
+          if (report.lat && report.lng) {
+            doc.setFont('helvetica', 'bold');
+            doc.text('GPS:', leftPad, infoY);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(0, 0, 200);
+            const mapsUrl = `https://maps.google.com/?q=${report.lat},${report.lng}`;
+            doc.textWithLink(mapsUrl.substring(0, 40), leftPad + 8, infoY, { url: mapsUrl });
+            doc.setTextColor(80, 80, 80);
+            infoY += 5;
+          }
           
           doc.setFont('helvetica', 'bold');
           doc.text('Description:', leftPad, infoY);
