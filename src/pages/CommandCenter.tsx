@@ -1723,13 +1723,18 @@ export default function CommandCenter() {
             )}
           </TabsContent>
 
-          {/* Employees Tab */}
           <TabsContent value="employees" className="space-y-6 mt-6">
             <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <Wrench className="w-5 h-5 text-primary" />
-                Service Staff Employees ({staffEmployees.length})
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Wrench className="w-5 h-5 text-primary" />
+                  Service Staff Employees ({staffEmployees.length})
+                </h2>
+                <Button variant="outline" size="sm" onClick={exportStaffPdf} disabled={staffEmployees.length === 0}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export PDF
+                </Button>
+              </div>
 
               {loadingStaff ? (
                 <div className="flex items-center justify-center py-8">
@@ -1772,7 +1777,7 @@ export default function CommandCenter() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex items-center gap-3">
                           <div className="text-center px-3 py-1.5 rounded-lg bg-success/10">
                             <p className="text-lg font-bold text-success">{employee.resolved_reports.length}</p>
                             <p className="text-xs text-muted-foreground">Resolved</p>
@@ -1781,6 +1786,31 @@ export default function CommandCenter() {
                             <p className="text-lg font-bold text-primary">{employee.active_reports.length}</p>
                             <p className="text-xs text-muted-foreground">Active</p>
                           </div>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="icon" className="text-destructive border-destructive/30 hover:bg-destructive/10 h-9 w-9">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove Staff Member?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will revert <strong>{employee.full_name}</strong> back to a student role. Their completed work history will remain in the reports.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteStaffMember(employee.user_id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Remove Staff
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
 
