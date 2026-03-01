@@ -4,7 +4,7 @@ import {
   Droplets, Utensils, Trash2, Zap, Droplet, 
   Users, ShieldAlert, Clock, Camera, MapPin,
   Send, ChevronRight, FileText, Eye, EyeOff,
-  AlertCircle, CheckCircle2, Loader2
+  AlertCircle, CheckCircle2, Loader2, Navigation
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -70,6 +70,8 @@ export default function StudentDashboard() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [landmark, setLandmark] = useState('');
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [fetchingGps, setFetchingGps] = useState(false);
   const [capturingPhoto, setCapturingPhoto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [reports, setReports] = useState<Report[]>([]);
@@ -199,6 +201,26 @@ export default function StudentDashboard() {
     setCapturingPhoto(false);
   };
 
+  const captureGps = () => {
+    if (!navigator.geolocation) {
+      toast({ title: 'GPS Not Available', description: 'Your browser does not support GPS.', variant: 'destructive' });
+      return;
+    }
+    setFetchingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGpsCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        setFetchingGps(false);
+        toast({ title: '📍 Location Captured', description: `Lat: ${position.coords.latitude.toFixed(6)}, Lng: ${position.coords.longitude.toFixed(6)}` });
+      },
+      (error) => {
+        setFetchingGps(false);
+        toast({ title: 'GPS Error', description: error.message || 'Could not get location.', variant: 'destructive' });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const uploadImage = async (file: File): Promise<string | null> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -257,6 +279,8 @@ export default function StudentDashboard() {
         image_url_2: imageUrls[1] || null,
         image_url_3: imageUrls[2] || null,
         landmark: landmark.trim() || null,
+        lat: gpsCoords?.lat || null,
+        lng: gpsCoords?.lng || null,
         is_anonymous: activeTab === 'personal' ? isAnonymous : false,
         time_of_incident: activeTab === 'security' && timeOfIncident ? new Date(timeOfIncident).toISOString() : null,
         status: 'pending',
@@ -276,6 +300,7 @@ export default function StudentDashboard() {
       setImagePreviews([]);
       setTimeOfIncident('');
       setLandmark('');
+      setGpsCoords(null);
       fetchReports();
     } catch (error: any) {
       toast({
@@ -693,6 +718,30 @@ export default function StudentDashboard() {
                 <p className="text-xs text-muted-foreground">
                   Enter the specific location or nearest landmark where the issue occurred
                 </p>
+
+                {/* GPS Capture */}
+                <div className="mt-3 flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant={gpsCoords ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={captureGps}
+                    disabled={fetchingGps}
+                    className={gpsCoords ? 'bg-success text-success-foreground hover:bg-success/90' : ''}
+                  >
+                    {fetchingGps ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Navigation className="w-4 h-4 mr-2" />
+                    )}
+                    {gpsCoords ? 'Location Captured ✓' : 'Use GPS Location'}
+                  </Button>
+                  {gpsCoords && (
+                    <span className="text-xs text-muted-foreground">
+                      {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Submit Button */}

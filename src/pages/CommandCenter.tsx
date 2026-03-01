@@ -408,6 +408,113 @@ export default function CommandCenter() {
     }
     setLoadingStaff(false);
   };
+  // Export staff details to PDF
+  const exportStaffPdf = async () => {
+    if (staffEmployees.length === 0) {
+      toast({ title: 'No Staff', description: 'No staff employees to export.', variant: 'destructive' });
+      return;
+    }
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 10;
+      const contentWidth = pageWidth - margin * 2;
+
+      // Title
+      doc.setFillColor(124, 29, 62);
+      doc.rect(0, 0, pageWidth, 25, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SERVICE STAFF - EMPLOYEE REPORT', pageWidth / 2, 12, { align: 'center' });
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Generated: ${new Date().toLocaleString()} | Total Staff: ${staffEmployees.length}`, pageWidth / 2, 20, { align: 'center' });
+      
+      doc.setTextColor(0, 0, 0);
+      let y = 32;
+
+      for (const emp of staffEmployees) {
+        if (y > 250) { doc.addPage(); y = 15; }
+
+        // Header bar
+        doc.setFillColor(240, 240, 245);
+        doc.roundedRect(margin, y, contentWidth, 12, 2, 2, 'F');
+        doc.setFillColor(124, 29, 62);
+        doc.roundedRect(margin, y, 3, 12, 1, 1, 'F');
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(60, 60, 60);
+        doc.text(emp.full_name || 'Unknown', margin + 6, y + 8);
+        
+        // Badge info
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        const infoText = [emp.emp_id, emp.contact_number].filter(Boolean).join(' | ');
+        doc.text(infoText, margin + contentWidth - 3, y + 8, { align: 'right' });
+        y += 16;
+
+        // Stats
+        doc.setFontSize(8);
+        doc.setTextColor(34, 197, 94);
+        doc.text(`Resolved: ${emp.resolved_reports.length}`, margin + 6, y);
+        doc.setTextColor(124, 29, 62);
+        doc.text(`Active: ${emp.active_reports.length}`, margin + 50, y);
+        y += 7;
+
+        // Tasks list
+        const tasks = [...emp.resolved_reports, ...emp.active_reports].slice(0, 10);
+        if (tasks.length > 0) {
+          doc.setFontSize(7);
+          doc.setTextColor(80, 80, 80);
+          for (const task of tasks) {
+            if (y > 275) { doc.addPage(); y = 15; }
+            const status = task.status.toUpperCase();
+            const sub = task.sub_category.replace(/_/g, ' ');
+            const date = new Date(task.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            doc.text(`• [${status}] ${sub} — ${date}`, margin + 8, y);
+            y += 4.5;
+          }
+        }
+        y += 5;
+        doc.setDrawColor(220, 220, 220);
+        doc.line(margin, y, margin + contentWidth, y);
+        y += 5;
+      }
+
+      // Footer
+      const totalPages = doc.internal.pages.length - 1;
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Page ${i} of ${totalPages} | Campus Connect Staff Report`, pageWidth / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });
+      }
+
+      doc.save(`staff_report_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast({ title: '✅ Staff Report Exported', description: `${staffEmployees.length} staff exported to PDF.` });
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Export Failed', description: 'Could not export staff report.', variant: 'destructive' });
+    }
+  };
+
+  // Delete a staff member (remove their role, reverting to student)
+  const deleteStaffMember = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_roles')
+        .update({ role: 'student' as any })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      toast({ title: 'Staff Removed', description: 'Employee has been reverted to student role.' });
+      fetchStaffEmployees();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to remove staff member.', variant: 'destructive' });
+    }
+  };
 
 
   // Check storage usage
@@ -582,6 +689,18 @@ export default function CommandCenter() {
         doc.text(safeText(report.landmark, 'Not specified').substring(0, 30), x + padding + 15, y);
         y += lineHeight;
         
+        // GPS coordinates link
+        if (report.lat && report.lng) {
+          doc.setFont('helvetica', 'bold');
+          doc.text('GPS:', x + padding, y);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(0, 0, 200);
+          const mapsUrl = `https://maps.google.com/?q=${report.lat},${report.lng}`;
+          doc.textWithLink(mapsUrl.substring(0, 45), x + padding + 8, y, { url: mapsUrl });
+          doc.setTextColor(80, 80, 80);
+          y += lineHeight;
+        }
+        
         // Description
         doc.setFont('helvetica', 'bold');
         doc.text('Description:', x + padding, y);
@@ -741,6 +860,18 @@ export default function CommandCenter() {
           doc.setFont('helvetica', 'normal');
           doc.text(safeText(report.landmark, 'Not specified').substring(0, 35), leftPad + 15, infoY);
           infoY += 5;
+          
+          // GPS coordinates link in image reports
+          if (report.lat && report.lng) {
+            doc.setFont('helvetica', 'bold');
+            doc.text('GPS:', leftPad, infoY);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(0, 0, 200);
+            const mapsUrl = `https://maps.google.com/?q=${report.lat},${report.lng}`;
+            doc.textWithLink(mapsUrl.substring(0, 40), leftPad + 8, infoY, { url: mapsUrl });
+            doc.setTextColor(80, 80, 80);
+            infoY += 5;
+          }
           
           doc.setFont('helvetica', 'bold');
           doc.text('Description:', leftPad, infoY);
@@ -1592,13 +1723,18 @@ export default function CommandCenter() {
             )}
           </TabsContent>
 
-          {/* Employees Tab */}
           <TabsContent value="employees" className="space-y-6 mt-6">
             <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <Wrench className="w-5 h-5 text-primary" />
-                Service Staff Employees ({staffEmployees.length})
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Wrench className="w-5 h-5 text-primary" />
+                  Service Staff Employees ({staffEmployees.length})
+                </h2>
+                <Button variant="outline" size="sm" onClick={exportStaffPdf} disabled={staffEmployees.length === 0}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export PDF
+                </Button>
+              </div>
 
               {loadingStaff ? (
                 <div className="flex items-center justify-center py-8">
@@ -1641,7 +1777,7 @@ export default function CommandCenter() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex items-center gap-3">
                           <div className="text-center px-3 py-1.5 rounded-lg bg-success/10">
                             <p className="text-lg font-bold text-success">{employee.resolved_reports.length}</p>
                             <p className="text-xs text-muted-foreground">Resolved</p>
@@ -1650,6 +1786,31 @@ export default function CommandCenter() {
                             <p className="text-lg font-bold text-primary">{employee.active_reports.length}</p>
                             <p className="text-xs text-muted-foreground">Active</p>
                           </div>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="icon" className="text-destructive border-destructive/30 hover:bg-destructive/10 h-9 w-9">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove Staff Member?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will revert <strong>{employee.full_name}</strong> back to a student role. Their completed work history will remain in the reports.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteStaffMember(employee.user_id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Remove Staff
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
 
