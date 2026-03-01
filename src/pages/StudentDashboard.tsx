@@ -4,7 +4,7 @@ import {
   Droplets, Utensils, Trash2, Zap, Droplet, 
   Users, ShieldAlert, Clock, Camera, MapPin,
   Send, ChevronRight, FileText, Eye, EyeOff,
-  AlertCircle, CheckCircle2, Loader2
+  AlertCircle, CheckCircle2, Loader2, Navigation
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -70,6 +70,8 @@ export default function StudentDashboard() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [landmark, setLandmark] = useState('');
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [fetchingGps, setFetchingGps] = useState(false);
   const [capturingPhoto, setCapturingPhoto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [reports, setReports] = useState<Report[]>([]);
