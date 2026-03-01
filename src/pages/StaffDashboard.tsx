@@ -306,6 +306,18 @@ export default function StaffDashboard() {
                       {report.landmark && (
                         <p className="text-xs text-muted-foreground mt-1">📍 {report.landmark}</p>
                       )}
+                      {report.lat && report.lng && (
+                        <a
+                          href={`https://www.google.com/maps?q=${report.lat},${report.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary mt-0.5 inline-flex items-center gap-1 hover:underline"
+                        >
+                          <MapPin className="w-3 h-3" />
+                          View on Maps
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      )}
                       <p className="text-xs text-muted-foreground mt-1">
                         {new Date(report.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </p>
