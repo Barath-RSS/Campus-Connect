@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wrench, CheckCircle2, Clock, Camera, Loader2,
-  AlertCircle, Image as ImageIcon, ChevronRight, Eye
+  AlertCircle, Image as ImageIcon, ChevronRight, Eye,
+  MapPin, ExternalLink
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -22,8 +23,12 @@ interface Report {
   sub_category: string;
   description: string;
   landmark: string | null;
+  lat: number | null;
+  lng: number | null;
   status: string;
   image_url: string | null;
+  image_url_2: string | null;
+  image_url_3: string | null;
   completion_image_url: string | null;
   official_response: string | null;
   is_anonymous: boolean;
@@ -347,13 +352,36 @@ export default function StaffDashboard() {
 
           {selectedReport && (
             <div className="mt-6 space-y-5">
-              {/* Report photo (issue) */}
-              {selectedReport.image_url && (
+              {/* Report photos */}
+              {(selectedReport.image_url || selectedReport.image_url_2 || selectedReport.image_url_3) && (
                 <div>
-                  <Label className="text-muted-foreground text-xs uppercase tracking-wide">Issue Photo</Label>
-                  <div className="mt-2 rounded-xl overflow-hidden border border-border">
-                    <img src={selectedReport.image_url} alt="Issue" className="w-full h-44 object-cover" />
+                  <Label className="text-muted-foreground text-xs uppercase tracking-wide">Issue Photos</Label>
+                  <div className="mt-2 grid grid-cols-1 gap-2">
+                    {[selectedReport.image_url, selectedReport.image_url_2, selectedReport.image_url_3]
+                      .filter(Boolean)
+                      .map((url, i) => (
+                        <div key={i} className="rounded-xl overflow-hidden border border-border">
+                          <img src={url!} alt={`Issue ${i + 1}`} className="w-full h-44 object-cover" />
+                        </div>
+                      ))}
                   </div>
+                </div>
+              )}
+
+              {/* GPS Location */}
+              {selectedReport.lat && selectedReport.lng && (
+                <div>
+                  <Label className="text-muted-foreground text-xs uppercase tracking-wide">GPS Location</Label>
+                  <a
+                    href={`https://www.google.com/maps?q=${selectedReport.lat},${selectedReport.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    View on Google Maps
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
               )}
 
