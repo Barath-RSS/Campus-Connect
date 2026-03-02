@@ -308,7 +308,7 @@ export default function StaffDashboard() {
                       )}
                       {report.lat && report.lng && (
                         <a
-                          href={`https://www.google.com/maps?q=${report.lat},${report.lng}`}
+                          href={`https://maps.google.com/maps?q=${report.lat},${report.lng}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-primary mt-0.5 inline-flex items-center gap-1 hover:underline"
@@ -385,7 +385,7 @@ export default function StaffDashboard() {
                 <div>
                   <Label className="text-muted-foreground text-xs uppercase tracking-wide">GPS Location</Label>
                   <a
-                    href={`https://www.google.com/maps?q=${selectedReport.lat},${selectedReport.lng}`}
+                    href={`https://maps.google.com/maps?q=${selectedReport.lat},${selectedReport.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-2 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
