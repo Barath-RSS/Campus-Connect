@@ -348,7 +348,7 @@ export default function CommandCenter() {
   };
 
   const openGoogleMaps = (lat: number, lng: number) => {
-    window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+    window.open(`https://maps.google.com/maps?q=${lat},${lng}`, '_blank');
   };
 
   const fetchStaffEmployees = async () => {
