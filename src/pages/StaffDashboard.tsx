@@ -336,7 +336,7 @@ export default function StaffDashboard() {
           </motion.div>
         ) : (
           <div className="space-y-3">
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence>
               {filteredReports.map((report, index) => (
                 <motion.div
                   key={report.id}
