@@ -1966,20 +1966,9 @@ export default function CommandCenter() {
                 </div>
               )}
 
-              {/* Legacy GPS Location (for old reports) */}
+              {/* GPS Location */}
               {selectedReport.lat && selectedReport.lng && (
-                <div>
-                  <Label className="text-muted-foreground">GPS Coordinates</Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => openGoogleMaps(selectedReport.lat!, selectedReport.lng!)}
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    View on Google Maps
-                  </Button>
-                </div>
+                <LocationLink lat={selectedReport.lat} lng={selectedReport.lng} variant="card" />
               )}
 
               {/* Update Status */}
