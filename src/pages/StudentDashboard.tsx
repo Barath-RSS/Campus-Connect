@@ -431,45 +431,51 @@ export default function StudentDashboard() {
                   {reports.map((report) => (
                     <motion.div
                       key={report.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="rounded-xl border border-border bg-card p-6"
+                      initial={{ opacity: 0, y: 15, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      whileHover={{ y: -2 }}
+                      transition={{ type: 'spring', stiffness: 200 }}
+                      className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 hover:shadow-lg hover:border-primary/20 transition-all duration-300 relative overflow-hidden"
                     >
-                      <div className="flex items-start justify-between">
+                      {/* Status accent line */}
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${
+                        report.status === 'pending' ? 'bg-warning' : report.status === 'investigating' ? 'bg-primary' : 'bg-success'
+                      }`} />
+                      
+                      <div className="flex items-start justify-between pl-2">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-foreground capitalize">
+                            <span className="font-bold text-foreground capitalize tracking-tight">
                               {report.sub_category.replace('_', ' ')}
                             </span>
                             {report.is_anonymous && (
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs rounded-lg">
                                 <EyeOff className="w-3 h-3 mr-1" />
                                 Anonymous
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground capitalize">
+                          <p className="text-sm text-muted-foreground capitalize font-medium">
                             {report.category.replace('_', ' ')}
                           </p>
                         </div>
-                        <Badge className={getStatusColor(report.status)}>
+                        <Badge className={`${getStatusColor(report.status)} rounded-lg`}>
                           {getStatusIcon(report.status)}
-                          <span className="ml-1 capitalize">{report.status}</span>
+                          <span className="ml-1 capitalize text-[11px]">{report.status}</span>
                         </Badge>
                       </div>
-                      <p className="mt-3 text-foreground">{report.description}</p>
+                      <p className="mt-3 text-foreground/80 leading-relaxed pl-2">{report.description}</p>
                       {report.official_response && (
-                        <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/10">
-                          <p className="text-sm font-medium text-primary">Official Response:</p>
+                        <div className="mt-4 p-3 rounded-xl bg-primary/5 border border-primary/10 ml-2">
+                          <p className="text-sm font-semibold text-primary">Official Response:</p>
                           <p className="text-sm text-foreground mt-1">{report.official_response}</p>
                         </div>
                       )}
-                      {/* Completion photo - shown when work is done */}
                       {report.completion_image_url && (
-                        <div className="mt-4 rounded-xl overflow-hidden border-2 border-success/30 bg-success/5">
+                        <div className="mt-4 rounded-xl overflow-hidden border-2 border-success/30 bg-success/5 ml-2">
                           <div className="flex items-center gap-2 px-3 py-2 border-b border-success/20">
                             <CheckCircle2 className="w-4 h-4 text-success" />
-                            <p className="text-sm font-medium text-success">Work Completed — Verification Photo</p>
+                            <p className="text-sm font-semibold text-success">Work Completed — Verification Photo</p>
                           </div>
                           <img
                             src={report.completion_image_url}
@@ -481,8 +487,8 @@ export default function StudentDashboard() {
                           </p>
                         </div>
                       )}
-                      <p className="mt-3 text-xs text-muted-foreground">
-                        Reported on {new Date(report.created_at).toLocaleDateString()}
+                      <p className="mt-3 text-[11px] text-muted-foreground/60 font-medium pl-2">
+                        Reported on {new Date(report.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </p>
                     </motion.div>
                   ))}
