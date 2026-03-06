@@ -283,79 +283,118 @@ export default function StaffDashboard() {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex gap-2 flex-wrap">
-          {(['all', 'pending', 'investigating'] as const).map(f => (
-            <Button
-              key={f}
-              variant={activeFilter === f ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveFilter(f)}
-              className="capitalize"
-            >
-              {f === 'all' ? 'Active Reports' : f === 'investigating' ? 'In Progress' : 'Pending'}
-            </Button>
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex gap-2 flex-wrap"
+        >
+          {(['all', 'pending', 'investigating'] as const).map((f, i) => (
+            <motion.div key={f} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant={activeFilter === f ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveFilter(f)}
+                className={`capitalize rounded-xl transition-all duration-300 ${
+                  activeFilter === f ? 'shadow-md shadow-primary/20' : 'hover:border-primary/30'
+                }`}
+              >
+                {f === 'all' ? 'Active Reports' : f === 'investigating' ? 'In Progress' : 'Pending'}
+                {f === 'pending' && stats.pending > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.5 text-[10px] rounded-full bg-warning/20 text-warning font-bold">{stats.pending}</span>
+                )}
+              </Button>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Reports list */}
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+            >
+              <Loader2 className="w-10 h-10 text-primary" />
+            </motion.div>
+            <p className="text-sm text-muted-foreground">Loading reports...</p>
           </div>
         ) : filteredReports.length === 0 ? (
-          <div className="text-center py-20 border border-border rounded-xl">
-            <CheckCircle2 className="w-16 h-16 mx-auto text-success mb-4" />
-            <h3 className="text-lg font-medium text-foreground">All Clear!</h3>
-            <p className="text-muted-foreground mt-1">No active reports to handle.</p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-20 border border-border/30 rounded-2xl bg-gradient-to-br from-success/5 to-transparent"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
+            >
+              <CheckCircle2 className="w-20 h-20 mx-auto text-success mb-4" />
+            </motion.div>
+            <h3 className="text-xl font-bold text-foreground">All Clear!</h3>
+            <p className="text-muted-foreground mt-1">No active reports to handle. Great work! 🎉</p>
+          </motion.div>
         ) : (
           <div className="space-y-3">
-            <AnimatePresence>
+            <AnimatePresence mode="popLayout">
               {filteredReports.map((report, index) => (
                 <motion.div
                   key={report.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ delay: index * 0.04 }}
-                  className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-shadow"
+                  layout
+                  initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: -50, scale: 0.95 }}
+                  transition={{ delay: index * 0.04, type: 'spring', stiffness: 200 }}
+                  whileHover={{ y: -2, transition: { duration: 0.2 } }}
+                  className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-5 hover:shadow-lg hover:border-primary/20 transition-all duration-300 group relative overflow-hidden"
                 >
+                  {/* Status accent line */}
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${
+                    report.status === 'pending' ? 'bg-warning' : report.status === 'investigating' ? 'bg-primary' : 'bg-success'
+                  }`} />
+                  
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 pl-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-foreground capitalize">
+                        <span className="font-bold text-foreground capitalize tracking-tight">
                           {report.sub_category.replace(/_/g, ' ')}
                         </span>
-                        <Badge className={getStatusColor(report.status)}>
+                        <Badge className={`${getStatusColor(report.status)} rounded-lg`}>
                           {getStatusIcon(report.status)}
-                          <span className="ml-1 capitalize">{report.status}</span>
+                          <span className="ml-1 capitalize text-[11px]">{report.status}</span>
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground capitalize mt-0.5">{report.category.replace(/_/g, ' ')}</p>
-                      <p className="text-sm text-foreground mt-2 line-clamp-2">{report.description}</p>
+                      <p className="text-sm text-muted-foreground capitalize mt-0.5 font-medium">{report.category.replace(/_/g, ' ')}</p>
+                      <p className="text-sm text-foreground/80 mt-2 line-clamp-2 leading-relaxed">{report.description}</p>
                       {report.landmark && (
-                        <p className="text-xs text-muted-foreground mt-1">📍 {report.landmark}</p>
+                        <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-primary/60" />
+                          {report.landmark}
+                        </p>
                       )}
                       {report.lat && report.lng && (
-                        <LocationLink lat={report.lat} lng={report.lng} variant="inline" className="mt-1" />
+                        <LocationLink lat={report.lat} lng={report.lng} variant="inline" className="mt-1.5" />
                       )}
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-[11px] text-muted-foreground/60 mt-2 font-medium">
                         {new Date(report.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </p>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedReport(report);
-                        setCapturedImage(null);
-                        setCapturedPreview(null);
-                        setCapturingPhoto(false);
-                      }}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      Handle
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary/40 transition-all duration-300 shadow-sm"
+                        onClick={() => {
+                          setSelectedReport(report);
+                          setCapturedImage(null);
+                          setCapturedPreview(null);
+                          setCapturingPhoto(false);
+                        }}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        Handle
+                      </Button>
+                    </motion.div>
                   </div>
                 </motion.div>
               ))}
