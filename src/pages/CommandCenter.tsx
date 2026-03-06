@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { LocationLink, getGoogleMapsUrl } from '@/components/LocationLink';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, FileText, CheckCircle2, Clock, 
@@ -348,7 +349,7 @@ export default function CommandCenter() {
   };
 
   const openGoogleMaps = (lat: number, lng: number) => {
-    window.open(`https://maps.google.com/maps?q=${lat},${lng}`, '_blank');
+    window.open(getGoogleMapsUrl(lat, lng), '_blank', 'noopener,noreferrer');
   };
 
   const fetchStaffEmployees = async () => {
@@ -695,7 +696,7 @@ export default function CommandCenter() {
           doc.text('GPS:', x + padding, y);
           doc.setFont('helvetica', 'normal');
           doc.setTextColor(0, 0, 200);
-          const mapsUrl = `https://maps.google.com/?q=${report.lat},${report.lng}`;
+          const mapsUrl = getGoogleMapsUrl(report.lat, report.lng);
           doc.textWithLink(mapsUrl.substring(0, 45), x + padding + 8, y, { url: mapsUrl });
           doc.setTextColor(80, 80, 80);
           y += lineHeight;
@@ -867,7 +868,7 @@ export default function CommandCenter() {
             doc.text('GPS:', leftPad, infoY);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(0, 0, 200);
-            const mapsUrl = `https://maps.google.com/?q=${report.lat},${report.lng}`;
+            const mapsUrl = getGoogleMapsUrl(report.lat, report.lng);
             doc.textWithLink(mapsUrl.substring(0, 40), leftPad + 8, infoY, { url: mapsUrl });
             doc.setTextColor(80, 80, 80);
             infoY += 5;
