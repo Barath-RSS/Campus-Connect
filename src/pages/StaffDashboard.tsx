@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wrench, CheckCircle2, Clock, Camera, Loader2,
   AlertCircle, Image as ImageIcon, ChevronRight, Eye,
-  MapPin, ExternalLink
+  MapPin, ExternalLink, Shield, Activity, TrendingUp
 } from 'lucide-react';
+import { LocationLink } from '@/components/LocationLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { AnimatedButton } from '@/components/AnimatedButton';
@@ -208,21 +209,33 @@ export default function StaffDashboard() {
   };
 
   return (
-    <PageTransition className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl shadow-sm">
+    <PageTransition className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-1/2 -left-20 w-72 h-72 bg-primary/3 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-1/4 w-60 h-60 bg-success/5 rounded-full blur-3xl" />
+      </div>
+
+      <header className="sticky top-0 z-50 border-b border-border/30 bg-background/70 backdrop-blur-2xl shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-md">
+            <motion.div
+              initial={{ rotate: -10, scale: 0.8 }}
+              animate={{ rotate: 0, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              className="w-11 h-11 rounded-2xl gradient-primary flex items-center justify-center shadow-lg shadow-primary/25"
+            >
               <Wrench className="w-5 h-5 text-primary-foreground" />
-            </div>
+            </motion.div>
             <div>
-              <h1 className="text-lg font-bold text-foreground">Campus Connect</h1>
-              <p className="text-xs text-muted-foreground hidden sm:block">Service Staff Dashboard</p>
+              <h1 className="text-lg font-bold text-foreground tracking-tight">Campus Connect</h1>
+              <p className="text-[11px] text-muted-foreground hidden sm:block font-medium">Service Staff Dashboard</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="outline" size="sm" onClick={signOut} className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors">
+            <Button variant="outline" size="sm" onClick={signOut} className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all duration-300 rounded-xl">
               <span className="hidden sm:inline">Sign Out</span>
               <span className="sm:hidden">Exit</span>
             </Button>
@@ -231,110 +244,157 @@ export default function StaffDashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
-        {/* Stats */}
+        {/* Stats - 3D Card Effect */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Total', value: stats.total, color: 'text-foreground', bg: 'bg-muted/50' },
-            { label: 'Pending', value: stats.pending, color: 'text-warning', bg: 'bg-warning/10' },
-            { label: 'In Progress', value: stats.investigating, color: 'text-primary', bg: 'bg-primary/10' },
-            { label: 'Resolved', value: stats.resolved, color: 'text-success', bg: 'bg-success/10' },
+            { label: 'Total Reports', value: stats.total, color: 'text-foreground', bg: 'from-muted/60 to-muted/30', icon: <Activity className="w-5 h-5 text-muted-foreground" />, border: 'border-border/50' },
+            { label: 'Pending', value: stats.pending, color: 'text-warning', bg: 'from-warning/15 to-warning/5', icon: <Clock className="w-5 h-5 text-warning" />, border: 'border-warning/20' },
+            { label: 'In Progress', value: stats.investigating, color: 'text-primary', bg: 'from-primary/15 to-primary/5', icon: <Loader2 className="w-5 h-5 text-primary animate-spin" />, border: 'border-primary/20' },
+            { label: 'Resolved', value: stats.resolved, color: 'text-success', bg: 'from-success/15 to-success/5', icon: <CheckCircle2 className="w-5 h-5 text-success" />, border: 'border-success/20' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className={`rounded-xl border border-border ${stat.bg} p-5`}
+              initial={{ opacity: 0, y: 30, rotateX: -15 }}
+              animate={{ opacity: 1, y: 0, rotateX: 0 }}
+              transition={{ delay: i * 0.08, type: 'spring', stiffness: 150 }}
+              whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.2 } }}
+              className={`rounded-2xl border ${stat.border} bg-gradient-to-br ${stat.bg} p-5 backdrop-blur-sm relative overflow-hidden group cursor-default`}
+              style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
             >
-              <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-              <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-white/10 to-transparent rounded-bl-full opacity-60" />
+              <div className="flex items-start justify-between">
+                <div>
+                  <motion.p
+                    key={stat.value}
+                    initial={{ scale: 1.2, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className={`text-3xl font-extrabold ${stat.color} tracking-tight`}
+                  >
+                    {stat.value}
+                  </motion.p>
+                  <p className="text-xs text-muted-foreground mt-1.5 font-medium">{stat.label}</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-background/50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  {stat.icon}
+                </div>
+              </div>
             </motion.div>
           ))}
         </div>
 
         {/* Filter tabs */}
-        <div className="flex gap-2 flex-wrap">
-          {(['all', 'pending', 'investigating'] as const).map(f => (
-            <Button
-              key={f}
-              variant={activeFilter === f ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveFilter(f)}
-              className="capitalize"
-            >
-              {f === 'all' ? 'Active Reports' : f === 'investigating' ? 'In Progress' : 'Pending'}
-            </Button>
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex gap-2 flex-wrap"
+        >
+          {(['all', 'pending', 'investigating'] as const).map((f, i) => (
+            <motion.div key={f} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant={activeFilter === f ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveFilter(f)}
+                className={`capitalize rounded-xl transition-all duration-300 ${
+                  activeFilter === f ? 'shadow-md shadow-primary/20' : 'hover:border-primary/30'
+                }`}
+              >
+                {f === 'all' ? 'Active Reports' : f === 'investigating' ? 'In Progress' : 'Pending'}
+                {f === 'pending' && stats.pending > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.5 text-[10px] rounded-full bg-warning/20 text-warning font-bold">{stats.pending}</span>
+                )}
+              </Button>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Reports list */}
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+            >
+              <Loader2 className="w-10 h-10 text-primary" />
+            </motion.div>
+            <p className="text-sm text-muted-foreground">Loading reports...</p>
           </div>
         ) : filteredReports.length === 0 ? (
-          <div className="text-center py-20 border border-border rounded-xl">
-            <CheckCircle2 className="w-16 h-16 mx-auto text-success mb-4" />
-            <h3 className="text-lg font-medium text-foreground">All Clear!</h3>
-            <p className="text-muted-foreground mt-1">No active reports to handle.</p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-20 border border-border/30 rounded-2xl bg-gradient-to-br from-success/5 to-transparent"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
+            >
+              <CheckCircle2 className="w-20 h-20 mx-auto text-success mb-4" />
+            </motion.div>
+            <h3 className="text-xl font-bold text-foreground">All Clear!</h3>
+            <p className="text-muted-foreground mt-1">No active reports to handle. Great work! 🎉</p>
+          </motion.div>
         ) : (
           <div className="space-y-3">
-            <AnimatePresence>
+            <AnimatePresence mode="popLayout">
               {filteredReports.map((report, index) => (
                 <motion.div
                   key={report.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ delay: index * 0.04 }}
-                  className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-shadow"
+                  layout
+                  initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: -50, scale: 0.95 }}
+                  transition={{ delay: index * 0.04, type: 'spring', stiffness: 200 }}
+                  whileHover={{ y: -2, transition: { duration: 0.2 } }}
+                  className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-5 hover:shadow-lg hover:border-primary/20 transition-all duration-300 group relative overflow-hidden"
                 >
+                  {/* Status accent line */}
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${
+                    report.status === 'pending' ? 'bg-warning' : report.status === 'investigating' ? 'bg-primary' : 'bg-success'
+                  }`} />
+                  
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 pl-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-foreground capitalize">
+                        <span className="font-bold text-foreground capitalize tracking-tight">
                           {report.sub_category.replace(/_/g, ' ')}
                         </span>
-                        <Badge className={getStatusColor(report.status)}>
+                        <Badge className={`${getStatusColor(report.status)} rounded-lg`}>
                           {getStatusIcon(report.status)}
-                          <span className="ml-1 capitalize">{report.status}</span>
+                          <span className="ml-1 capitalize text-[11px]">{report.status}</span>
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground capitalize mt-0.5">{report.category.replace(/_/g, ' ')}</p>
-                      <p className="text-sm text-foreground mt-2 line-clamp-2">{report.description}</p>
+                      <p className="text-sm text-muted-foreground capitalize mt-0.5 font-medium">{report.category.replace(/_/g, ' ')}</p>
+                      <p className="text-sm text-foreground/80 mt-2 line-clamp-2 leading-relaxed">{report.description}</p>
                       {report.landmark && (
-                        <p className="text-xs text-muted-foreground mt-1">📍 {report.landmark}</p>
+                        <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-primary/60" />
+                          {report.landmark}
+                        </p>
                       )}
                       {report.lat && report.lng && (
-                        <a
-                          href={`https://maps.google.com/maps?q=${report.lat},${report.lng}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary mt-0.5 inline-flex items-center gap-1 hover:underline"
-                        >
-                          <MapPin className="w-3 h-3" />
-                          View on Maps
-                          <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
+                        <LocationLink lat={report.lat} lng={report.lng} variant="inline" className="mt-1.5" />
                       )}
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-[11px] text-muted-foreground/60 mt-2 font-medium">
                         {new Date(report.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </p>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedReport(report);
-                        setCapturedImage(null);
-                        setCapturedPreview(null);
-                        setCapturingPhoto(false);
-                      }}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      Handle
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary/40 transition-all duration-300 shadow-sm"
+                        onClick={() => {
+                          setSelectedReport(report);
+                          setCapturedImage(null);
+                          setCapturedPreview(null);
+                          setCapturingPhoto(false);
+                        }}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        Handle
+                      </Button>
+                    </motion.div>
                   </div>
                 </motion.div>
               ))}
@@ -382,19 +442,7 @@ export default function StaffDashboard() {
 
               {/* GPS Location */}
               {selectedReport.lat && selectedReport.lng && (
-                <div>
-                  <Label className="text-muted-foreground text-xs uppercase tracking-wide">GPS Location</Label>
-                  <a
-                    href={`https://maps.google.com/maps?q=${selectedReport.lat},${selectedReport.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
-                  >
-                    <MapPin className="w-4 h-4" />
-                    View on Google Maps
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
+                <LocationLink lat={selectedReport.lat} lng={selectedReport.lng} variant="card" />
               )}
 
               {/* Description */}
