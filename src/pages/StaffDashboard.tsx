@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wrench, CheckCircle2, Clock, Camera, Loader2,
   AlertCircle, Image as ImageIcon, ChevronRight, Eye,
-  MapPin, ExternalLink
+  MapPin, ExternalLink, Shield, Activity, TrendingUp
 } from 'lucide-react';
+import { LocationLink } from '@/components/LocationLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { AnimatedButton } from '@/components/AnimatedButton';
@@ -307,16 +308,7 @@ export default function StaffDashboard() {
                         <p className="text-xs text-muted-foreground mt-1">📍 {report.landmark}</p>
                       )}
                       {report.lat && report.lng && (
-                        <a
-                          href={`https://maps.google.com/maps?q=${report.lat},${report.lng}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary mt-0.5 inline-flex items-center gap-1 hover:underline"
-                        >
-                          <MapPin className="w-3 h-3" />
-                          View on Maps
-                          <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
+                        <LocationLink lat={report.lat} lng={report.lng} variant="inline" className="mt-1" />
                       )}
                       <p className="text-xs text-muted-foreground mt-1">
                         {new Date(report.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -382,19 +374,7 @@ export default function StaffDashboard() {
 
               {/* GPS Location */}
               {selectedReport.lat && selectedReport.lng && (
-                <div>
-                  <Label className="text-muted-foreground text-xs uppercase tracking-wide">GPS Location</Label>
-                  <a
-                    href={`https://maps.google.com/maps?q=${selectedReport.lat},${selectedReport.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
-                  >
-                    <MapPin className="w-4 h-4" />
-                    View on Google Maps
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
+                <LocationLink lat={selectedReport.lat} lng={selectedReport.lng} variant="card" />
               )}
 
               {/* Description */}
