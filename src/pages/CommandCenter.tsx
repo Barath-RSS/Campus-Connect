@@ -7,7 +7,7 @@ import {
   ChevronRight, AlertCircle, Loader2, Send, Eye,
   UserCheck, UserX, Users, Download, Trash2, 
   PieChart as PieChartIcon, Database, HardDrive,
-  Wrench, Phone
+  Wrench, Phone, User
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
