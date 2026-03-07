@@ -1178,7 +1178,7 @@ export default function CommandCenter() {
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Tabs for Reports, Analytics, Official Requests, and Employees */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsList className="grid w-full max-w-3xl grid-cols-5">
             <TabsTrigger value="reports" className="flex items-center gap-1 sm:gap-2">
               <FileText className="w-4 h-4" />
               <span className="hidden sm:inline">Reports</span>
@@ -1386,6 +1386,18 @@ export default function CommandCenter() {
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="investigating">Investigating</SelectItem>
                   <SelectItem value="resolved">Resolved</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={landmarkFilter} onValueChange={setLandmarkFilter}>
+                <SelectTrigger className="w-full sm:w-52">
+                  <MapPin className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Landmark" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="all">All Landmarks</SelectItem>
+                  {CAMPUS_LANDMARKS.map((lm) => (
+                    <SelectItem key={lm} value={lm}>{lm}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
