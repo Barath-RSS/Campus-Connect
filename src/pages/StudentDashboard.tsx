@@ -78,6 +78,7 @@ export default function StudentDashboard() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loadingReports, setLoadingReports] = useState(true);
   const [showMyReports, setShowMyReports] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -368,9 +369,20 @@ export default function StudentDashboard() {
           <div className="flex items-center gap-2 sm:gap-3">
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Button
+                variant={showProfile ? "default" : "outline"}
+                size="sm"
+                onClick={() => { setShowProfile(!showProfile); setShowMyReports(false); }}
+                className={`rounded-xl transition-all duration-300 ${showProfile ? 'shadow-md shadow-primary/20' : 'hover:border-primary/30'}`}
+              >
+                <User className="w-4 h-4 mr-1.5" />
+                <span className="hidden sm:inline">Profile</span>
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Button
                 variant={showMyReports ? "default" : "outline"}
                 size="sm"
-                onClick={() => setShowMyReports(!showMyReports)}
+                onClick={() => { setShowMyReports(!showMyReports); setShowProfile(false); }}
                 className={`relative rounded-xl transition-all duration-300 ${showMyReports ? 'shadow-md shadow-primary/20' : 'hover:border-primary/30'}`}
               >
                 <FileText className="w-4 h-4 mr-1.5" />
