@@ -4,7 +4,7 @@ import {
   Droplets, Utensils, Trash2, Zap, Droplet, 
   Users, ShieldAlert, Clock, Camera, MapPin,
   Send, ChevronRight, FileText, Eye, EyeOff,
-  AlertCircle, CheckCircle2, Loader2, Navigation
+  AlertCircle, CheckCircle2, Loader2, Navigation, User
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -18,14 +18,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { CAMPUS_LANDMARKS } from '@/constants/campusLocations';
+import { UserProfile } from '@/components/UserProfile';
 
 import { Building2 } from 'lucide-react';
-
 import { MoreHorizontal } from 'lucide-react';
-
 import { FlaskConical } from 'lucide-react';
 
 const categories = {
