@@ -240,6 +240,17 @@ export default function StaffDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Button
+                variant={showProfile ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowProfile(!showProfile)}
+                className={`rounded-xl transition-all duration-300 ${showProfile ? 'shadow-md shadow-primary/20' : 'hover:border-primary/30'}`}
+              >
+                <User className="w-4 h-4 mr-1.5" />
+                <span className="hidden sm:inline">Profile</span>
+              </Button>
+            </motion.div>
             <ThemeToggle />
             <Button variant="outline" size="sm" onClick={signOut} className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all duration-300 rounded-xl">
               <span className="hidden sm:inline">Sign Out</span>
