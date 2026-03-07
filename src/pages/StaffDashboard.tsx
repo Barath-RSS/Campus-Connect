@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wrench, CheckCircle2, Clock, Camera, Loader2,
   AlertCircle, Image as ImageIcon, ChevronRight, Eye,
-  MapPin, ExternalLink, Shield, Activity, TrendingUp
+  MapPin, ExternalLink, Shield, Activity, TrendingUp, User
 } from 'lucide-react';
 import { LocationLink } from '@/components/LocationLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,10 +12,13 @@ import { AnimatedButton } from '@/components/AnimatedButton';
 import { PageTransition } from '@/components/ui/PageTransition';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { CAMPUS_LANDMARKS } from '@/constants/campusLocations';
+import { UserProfile } from '@/components/UserProfile';
 
 interface Report {
   id: string;
@@ -45,6 +48,8 @@ export default function StaffDashboard() {
   const [capturedImage, setCapturedImage] = useState<File | null>(null);
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'pending' | 'investigating' | 'all'>('all');
+  const [landmarkFilter, setLandmarkFilter] = useState<string>('all');
+  const [showProfile, setShowProfile] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -85,8 +90,9 @@ export default function StaffDashboard() {
   };
 
   const filteredReports = reports.filter(r => {
-    if (activeFilter === 'all') return r.status !== 'resolved';
-    return r.status === activeFilter;
+    const statusMatch = activeFilter === 'all' ? r.status !== 'resolved' : r.status === activeFilter;
+    const landmarkMatch = landmarkFilter === 'all' || r.landmark?.toLowerCase().includes(landmarkFilter.toLowerCase());
+    return statusMatch && landmarkMatch;
   });
 
   const stats = {
@@ -234,6 +240,17 @@ export default function StaffDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Button
+                variant={showProfile ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowProfile(!showProfile)}
+                className={`rounded-xl transition-all duration-300 ${showProfile ? 'shadow-md shadow-primary/20' : 'hover:border-primary/30'}`}
+              >
+                <User className="w-4 h-4 mr-1.5" />
+                <span className="hidden sm:inline">Profile</span>
+              </Button>
+            </motion.div>
             <ThemeToggle />
             <Button variant="outline" size="sm" onClick={signOut} className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all duration-300 rounded-xl">
               <span className="hidden sm:inline">Sign Out</span>
@@ -244,6 +261,31 @@ export default function StaffDashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
+        <AnimatePresence mode="wait">
+        {showProfile ? (
+          <motion.div
+            key="profile"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-foreground">My Profile</h2>
+              <Button variant="ghost" onClick={() => setShowProfile(false)}>
+                <ChevronRight className="w-4 h-4 mr-2 rotate-180" />
+                Back to Dashboard
+              </Button>
+            </div>
+            <UserProfile role="staff" />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="dashboard"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="space-y-8"
+          >
         {/* Stats - 3D Card Effect */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
@@ -286,7 +328,7 @@ export default function StaffDashboard() {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="flex gap-2 flex-wrap"
+          className="flex gap-2 flex-wrap items-center"
         >
           {(['all', 'pending', 'investigating'] as const).map((f, i) => (
             <motion.div key={f} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -305,6 +347,18 @@ export default function StaffDashboard() {
               </Button>
             </motion.div>
           ))}
+          <Select value={landmarkFilter} onValueChange={setLandmarkFilter}>
+            <SelectTrigger className="w-48 rounded-xl h-9 text-sm">
+              <MapPin className="w-3.5 h-3.5 mr-1.5" />
+              <SelectValue placeholder="Landmark" />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              <SelectItem value="all">All Landmarks</SelectItem>
+              {CAMPUS_LANDMARKS.map((lm) => (
+                <SelectItem key={lm} value={lm}>{lm}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </motion.div>
 
         {/* Reports list */}
@@ -401,6 +455,9 @@ export default function StaffDashboard() {
             </AnimatePresence>
           </div>
         )}
+          </motion.div>
+        )}
+        </AnimatePresence>
       </main>
 
       {/* Report Detail Sheet */}

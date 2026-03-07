@@ -4,7 +4,7 @@ import {
   Droplets, Utensils, Trash2, Zap, Droplet, 
   Users, ShieldAlert, Clock, Camera, MapPin,
   Send, ChevronRight, FileText, Eye, EyeOff,
-  AlertCircle, CheckCircle2, Loader2, Navigation
+  AlertCircle, CheckCircle2, Loader2, Navigation, User
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -18,14 +18,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { CAMPUS_LANDMARKS } from '@/constants/campusLocations';
+import { UserProfile } from '@/components/UserProfile';
 
 import { Building2 } from 'lucide-react';
-
 import { MoreHorizontal } from 'lucide-react';
-
 import { FlaskConical } from 'lucide-react';
 
 const categories = {
@@ -77,6 +78,7 @@ export default function StudentDashboard() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loadingReports, setLoadingReports] = useState(true);
   const [showMyReports, setShowMyReports] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -367,9 +369,20 @@ export default function StudentDashboard() {
           <div className="flex items-center gap-2 sm:gap-3">
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Button
+                variant={showProfile ? "default" : "outline"}
+                size="sm"
+                onClick={() => { setShowProfile(!showProfile); setShowMyReports(false); }}
+                className={`rounded-xl transition-all duration-300 ${showProfile ? 'shadow-md shadow-primary/20' : 'hover:border-primary/30'}`}
+              >
+                <User className="w-4 h-4 mr-1.5" />
+                <span className="hidden sm:inline">Profile</span>
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Button
                 variant={showMyReports ? "default" : "outline"}
                 size="sm"
-                onClick={() => setShowMyReports(!showMyReports)}
+                onClick={() => { setShowMyReports(!showMyReports); setShowProfile(false); }}
                 className={`relative rounded-xl transition-all duration-300 ${showMyReports ? 'shadow-md shadow-primary/20' : 'hover:border-primary/30'}`}
               >
                 <FileText className="w-4 h-4 mr-1.5" />
@@ -396,7 +409,23 @@ export default function StudentDashboard() {
 
       <main className="container mx-auto px-4 py-8">
         <AnimatePresence mode="wait">
-          {showMyReports ? (
+          {showProfile ? (
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-foreground">My Profile</h2>
+                <Button variant="ghost" onClick={() => setShowProfile(false)}>
+                  <ChevronRight className="w-4 h-4 mr-2 rotate-180" />
+                  Back to Report
+                </Button>
+              </div>
+              <UserProfile role="student" />
+            </motion.div>
+          ) : showMyReports ? (
             <motion.div
               key="reports"
               initial={{ opacity: 0, x: 20 }}
@@ -720,22 +749,22 @@ export default function StudentDashboard() {
                 ) : null}
               </div>
 
-              {/* Landmark Input */}
+              {/* Landmark Selection */}
               <div className="space-y-2">
-                <Label htmlFor="landmark">Location / Landmark</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="landmark"
-                    type="text"
-                    placeholder="e.g., Block A, Room 302, Near Main Library..."
-                    value={landmark}
-                    onChange={(e) => setLandmark(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+                <Label>Location / Landmark</Label>
+                <Select value={landmark} onValueChange={setLandmark}>
+                  <SelectTrigger className="w-full">
+                    <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Select campus location..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {CAMPUS_LANDMARKS.map((lm) => (
+                      <SelectItem key={lm} value={lm}>{lm}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground">
-                  Enter the specific location or nearest landmark where the issue occurred
+                  Select the nearest campus landmark where the issue occurred
                 </p>
 
                 {/* GPS Capture */}

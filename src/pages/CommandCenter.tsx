@@ -7,7 +7,7 @@ import {
   ChevronRight, AlertCircle, Loader2, Send, Eye,
   UserCheck, UserX, Users, Download, Trash2, 
   PieChart as PieChartIcon, Database, HardDrive,
-  Wrench, Phone
+  Wrench, Phone, User
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -29,6 +29,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { CAMPUS_LANDMARKS } from '@/constants/campusLocations';
+import { UserProfile } from '@/components/UserProfile';
 
 interface AccessRequest {
   id: string;
@@ -106,6 +108,7 @@ export default function CommandCenter() {
   const [storageInfo, setStorageInfo] = useState<{ used: number; fileCount: number } | null>(null);
   const [staffEmployees, setStaffEmployees] = useState<StaffEmployee[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(true);
+  const [landmarkFilter, setLandmarkFilter] = useState<string>('all');
 
   const { signOut } = useAuth();
   const { toast } = useToast();
@@ -126,17 +129,30 @@ export default function CommandCenter() {
           schema: 'public',
           table: 'reports'
         },
-        (payload) => {
+        async (payload) => {
           const newReport = payload.new as Report;
           console.log('New report received:', newReport);
           
+          // Fetch submitter profile for the new report
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, register_no')
+            .eq('user_id', newReport.user_id)
+            .maybeSingle();
+          
+          const enrichedReport = {
+            ...newReport,
+            submitter_name: profile?.full_name || null,
+            submitter_register_no: profile?.register_no || null,
+          };
+          
           // Add to reports list
-          setReports(prev => [newReport, ...prev]);
+          setReports(prev => [enrichedReport, ...prev]);
           
           // Add notification
           const notification: Notification = {
             id: newReport.id,
-            report: newReport,
+            report: enrichedReport,
             read: false,
             timestamp: new Date()
           };
@@ -158,7 +174,7 @@ export default function CommandCenter() {
 
   useEffect(() => {
     filterReports();
-  }, [reports, searchTerm, categoryFilter, statusFilter]);
+  }, [reports, searchTerm, categoryFilter, statusFilter, landmarkFilter]);
 
   const fetchReports = async () => {
     // Fetch reports first
@@ -310,6 +326,12 @@ export default function CommandCenter() {
 
     if (statusFilter !== 'all') {
       filtered = filtered.filter((r) => r.status === statusFilter);
+    }
+
+    if (landmarkFilter !== 'all') {
+      filtered = filtered.filter((r) => 
+        r.landmark?.toLowerCase().includes(landmarkFilter.toLowerCase())
+      );
     }
 
     setFilteredReports(filtered);
@@ -1156,7 +1178,7 @@ export default function CommandCenter() {
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Tabs for Reports, Analytics, Official Requests, and Employees */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsList className="grid w-full max-w-3xl grid-cols-5">
             <TabsTrigger value="reports" className="flex items-center gap-1 sm:gap-2">
               <FileText className="w-4 h-4" />
               <span className="hidden sm:inline">Reports</span>
@@ -1177,6 +1199,10 @@ export default function CommandCenter() {
             <TabsTrigger value="employees" className="flex items-center gap-1 sm:gap-2">
               <Wrench className="w-4 h-4" />
               <span className="hidden sm:inline">Employees</span>
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="flex items-center gap-1 sm:gap-2">
+              <User className="w-4 h-4" />
+              <span className="hidden sm:inline">Profile</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1364,6 +1390,18 @@ export default function CommandCenter() {
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="investigating">Investigating</SelectItem>
                   <SelectItem value="resolved">Resolved</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={landmarkFilter} onValueChange={setLandmarkFilter}>
+                <SelectTrigger className="w-full sm:w-52">
+                  <MapPin className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Landmark" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="all">All Landmarks</SelectItem>
+                  {CAMPUS_LANDMARKS.map((lm) => (
+                    <SelectItem key={lm} value={lm}>{lm}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -1856,6 +1894,11 @@ export default function CommandCenter() {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          {/* Profile Tab */}
+          <TabsContent value="profile" className="mt-6">
+            <UserProfile role="official" />
           </TabsContent>
         </Tabs>
       </main>
