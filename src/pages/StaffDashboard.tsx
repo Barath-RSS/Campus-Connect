@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wrench, CheckCircle2, Clock, Camera, Loader2,
   AlertCircle, Image as ImageIcon, ChevronRight, Eye,
-  MapPin, ExternalLink, Shield, Activity, TrendingUp
+  MapPin, ExternalLink, Shield, Activity, TrendingUp, User
 } from 'lucide-react';
 import { LocationLink } from '@/components/LocationLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,10 +12,13 @@ import { AnimatedButton } from '@/components/AnimatedButton';
 import { PageTransition } from '@/components/ui/PageTransition';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { CAMPUS_LANDMARKS } from '@/constants/campusLocations';
+import { UserProfile } from '@/components/UserProfile';
 
 interface Report {
   id: string;
@@ -45,6 +48,8 @@ export default function StaffDashboard() {
   const [capturedImage, setCapturedImage] = useState<File | null>(null);
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'pending' | 'investigating' | 'all'>('all');
+  const [landmarkFilter, setLandmarkFilter] = useState<string>('all');
+  const [showProfile, setShowProfile] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -85,8 +90,9 @@ export default function StaffDashboard() {
   };
 
   const filteredReports = reports.filter(r => {
-    if (activeFilter === 'all') return r.status !== 'resolved';
-    return r.status === activeFilter;
+    const statusMatch = activeFilter === 'all' ? r.status !== 'resolved' : r.status === activeFilter;
+    const landmarkMatch = landmarkFilter === 'all' || r.landmark?.toLowerCase().includes(landmarkFilter.toLowerCase());
+    return statusMatch && landmarkMatch;
   });
 
   const stats = {
