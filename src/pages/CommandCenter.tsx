@@ -1895,6 +1895,11 @@ export default function CommandCenter() {
               )}
             </div>
           </TabsContent>
+
+          {/* Profile Tab */}
+          <TabsContent value="profile" className="mt-6">
+            <UserProfile role="official" />
+          </TabsContent>
         </Tabs>
       </main>
 
