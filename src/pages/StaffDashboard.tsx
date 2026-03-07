@@ -443,6 +443,9 @@ export default function StaffDashboard() {
             </AnimatePresence>
           </div>
         )}
+          </motion.div>
+        )}
+        </AnimatePresence>
       </main>
 
       {/* Report Detail Sheet */}
