@@ -29,6 +29,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { CAMPUS_LANDMARKS } from '@/constants/campusLocations';
+import { UserProfile } from '@/components/UserProfile';
 
 interface AccessRequest {
   id: string;
@@ -106,6 +108,7 @@ export default function CommandCenter() {
   const [storageInfo, setStorageInfo] = useState<{ used: number; fileCount: number } | null>(null);
   const [staffEmployees, setStaffEmployees] = useState<StaffEmployee[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(true);
+  const [landmarkFilter, setLandmarkFilter] = useState<string>('all');
 
   const { signOut } = useAuth();
   const { toast } = useToast();
@@ -130,13 +133,26 @@ export default function CommandCenter() {
           const newReport = payload.new as Report;
           console.log('New report received:', newReport);
           
+          // Fetch submitter profile for the new report
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, register_no')
+            .eq('user_id', newReport.user_id)
+            .maybeSingle();
+          
+          const enrichedReport = {
+            ...newReport,
+            submitter_name: profile?.full_name || null,
+            submitter_register_no: profile?.register_no || null,
+          };
+          
           // Add to reports list
-          setReports(prev => [newReport, ...prev]);
+          setReports(prev => [enrichedReport, ...prev]);
           
           // Add notification
           const notification: Notification = {
             id: newReport.id,
-            report: newReport,
+            report: enrichedReport,
             read: false,
             timestamp: new Date()
           };
@@ -158,7 +174,7 @@ export default function CommandCenter() {
 
   useEffect(() => {
     filterReports();
-  }, [reports, searchTerm, categoryFilter, statusFilter]);
+  }, [reports, searchTerm, categoryFilter, statusFilter, landmarkFilter]);
 
   const fetchReports = async () => {
     // Fetch reports first
@@ -310,6 +326,12 @@ export default function CommandCenter() {
 
     if (statusFilter !== 'all') {
       filtered = filtered.filter((r) => r.status === statusFilter);
+    }
+
+    if (landmarkFilter !== 'all') {
+      filtered = filtered.filter((r) => 
+        r.landmark?.toLowerCase().includes(landmarkFilter.toLowerCase())
+      );
     }
 
     setFilteredReports(filtered);
