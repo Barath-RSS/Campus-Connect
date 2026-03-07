@@ -261,6 +261,31 @@ export default function StaffDashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
+        <AnimatePresence mode="wait">
+        {showProfile ? (
+          <motion.div
+            key="profile"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-foreground">My Profile</h2>
+              <Button variant="ghost" onClick={() => setShowProfile(false)}>
+                <ChevronRight className="w-4 h-4 mr-2 rotate-180" />
+                Back to Dashboard
+              </Button>
+            </div>
+            <UserProfile role="staff" />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="dashboard"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="space-y-8"
+          >
         {/* Stats - 3D Card Effect */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
