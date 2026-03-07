@@ -749,22 +749,22 @@ export default function StudentDashboard() {
                 ) : null}
               </div>
 
-              {/* Landmark Input */}
+              {/* Landmark Selection */}
               <div className="space-y-2">
-                <Label htmlFor="landmark">Location / Landmark</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="landmark"
-                    type="text"
-                    placeholder="e.g., Block A, Room 302, Near Main Library..."
-                    value={landmark}
-                    onChange={(e) => setLandmark(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+                <Label>Location / Landmark</Label>
+                <Select value={landmark} onValueChange={setLandmark}>
+                  <SelectTrigger className="w-full">
+                    <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Select campus location..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {CAMPUS_LANDMARKS.map((lm) => (
+                      <SelectItem key={lm} value={lm}>{lm}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground">
-                  Enter the specific location or nearest landmark where the issue occurred
+                  Select the nearest campus landmark where the issue occurred
                 </p>
 
                 {/* GPS Capture */}
