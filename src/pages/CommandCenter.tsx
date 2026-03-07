@@ -129,7 +129,7 @@ export default function CommandCenter() {
           schema: 'public',
           table: 'reports'
         },
-        (payload) => {
+        async (payload) => {
           const newReport = payload.new as Report;
           console.log('New report received:', newReport);
           
