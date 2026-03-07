@@ -328,7 +328,7 @@ export default function StaffDashboard() {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="flex gap-2 flex-wrap"
+          className="flex gap-2 flex-wrap items-center"
         >
           {(['all', 'pending', 'investigating'] as const).map((f, i) => (
             <motion.div key={f} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -347,6 +347,18 @@ export default function StaffDashboard() {
               </Button>
             </motion.div>
           ))}
+          <Select value={landmarkFilter} onValueChange={setLandmarkFilter}>
+            <SelectTrigger className="w-48 rounded-xl h-9 text-sm">
+              <MapPin className="w-3.5 h-3.5 mr-1.5" />
+              <SelectValue placeholder="Landmark" />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              <SelectItem value="all">All Landmarks</SelectItem>
+              {CAMPUS_LANDMARKS.map((lm) => (
+                <SelectItem key={lm} value={lm}>{lm}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </motion.div>
 
         {/* Reports list */}
