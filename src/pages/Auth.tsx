@@ -100,6 +100,8 @@ export default function AuthPage() {
   useEffect(() => {
     if (!isForgotPassword) {
       setResetStep('email');
+      setStaffResetStep('contact');
+      setResetContactNumber('');
       setNewPassword('');
       setConfirmPassword('');
     }
