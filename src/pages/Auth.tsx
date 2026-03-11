@@ -242,7 +242,11 @@ export default function AuthPage() {
     e.preventDefault();
     
     if (isForgotPassword) {
-      if (resetStep === 'email') {
+      if (userType === 'staff') {
+        if (staffResetStep === 'contact') {
+          await handleStaffResetSms();
+        }
+      } else if (resetStep === 'email') {
         await handleSendResetLink();
       }
       return;
