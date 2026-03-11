@@ -600,32 +600,78 @@ export default function AuthPage() {
                 transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
                 className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 mb-4 shadow-lg"
               >
-                <Mail className="w-8 h-8 text-primary" />
+                {userType === 'staff' ? <Phone className="w-8 h-8 text-primary" /> : <Mail className="w-8 h-8 text-primary" />}
               </motion.div>
               <h1 className="text-2xl font-bold text-foreground mb-2">Reset Password</h1>
               <p className="text-muted-foreground text-sm">
-                Enter your email and we'll send you a reset link
+                {userType === 'staff'
+                  ? 'Enter your registered contact number to receive a reset link via SMS'
+                  : "Enter your email and we'll send you a reset link"
+                }
               </p>
             </div>
 
+            {/* User type selector for forgot password */}
+            <div className="flex gap-2 mb-6">
+              {(['student', 'official', 'staff'] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setUserType(type)}
+                  className={`flex-1 py-2.5 px-2 rounded-xl border-2 transition-all duration-200 text-xs font-medium capitalize ${
+                    userType === type
+                      ? 'border-primary bg-primary/10 text-primary shadow-md'
+                      : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50'
+                  }`}
+                >
+                  {type === 'staff' ? 'Staff' : type === 'official' ? 'Official' : 'Student'}
+                </button>
+              ))}
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="reset-email" className="text-sm font-medium">Email Address</Label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    id="reset-email"
-                    type="email"
-                    placeholder="yourname@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-12 h-12 rounded-xl border-2 focus:border-primary transition-colors"
-                  />
+              {userType === 'staff' ? (
+                <div className="space-y-2">
+                  <Label htmlFor="reset-contact" className="text-sm font-medium">Registered Contact Number</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="reset-contact"
+                      type="tel"
+                      placeholder="e.g., 9876543210"
+                      value={resetContactNumber}
+                      onChange={(e) => setResetContactNumber(e.target.value.replace(/\D/g, ''))}
+                      className="pl-12 h-12 rounded-xl border-2 focus:border-primary transition-colors"
+                      maxLength={15}
+                    />
+                  </div>
+                  {errors.contactNumber && (
+                    <p className="text-sm text-destructive">{errors.contactNumber}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    Enter the Indian contact number you registered with
+                  </p>
                 </div>
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email}</p>
-                )}
-              </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email" className="text-sm font-medium">Email Address</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      placeholder="yourname@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-12 h-12 rounded-xl border-2 focus:border-primary transition-colors"
+                    />
+                  </div>
+                  {errors.email && (
+                    <p className="text-sm text-destructive">{errors.email}</p>
+                  )}
+                </div>
+              )}
 
               <AnimatedButton
                 type="submit"
@@ -638,6 +684,8 @@ export default function AuthPage() {
                     transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                     className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full"
                   />
+                ) : userType === 'staff' ? (
+                  'Send Reset SMS'
                 ) : (
                   'Send Reset Link'
                 )}
