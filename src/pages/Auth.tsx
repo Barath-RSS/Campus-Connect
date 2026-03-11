@@ -38,6 +38,8 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetStep, setResetStep] = useState<ResetStep>('email');
+  const [staffResetStep, setStaffResetStep] = useState<StaffResetStep>('contact');
+  const [resetContactNumber, setResetContactNumber] = useState('');
   const [userType, setUserType] = useState<UserType>('student');
   const [email, setEmail] = useState('');
   const [registerNo, setRegisterNo] = useState('');
