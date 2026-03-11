@@ -24,6 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { CAMPUS_LANDMARKS } from '@/constants/campusLocations';
 import { UserProfile } from '@/components/UserProfile';
+import { LandmarkCombobox } from '@/components/LandmarkCombobox';
 
 import { Building2 } from 'lucide-react';
 import { MoreHorizontal } from 'lucide-react';
@@ -749,22 +750,15 @@ export default function StudentDashboard() {
                 ) : null}
               </div>
 
-              {/* Landmark Selection */}
+              {/* Landmark Selection - Combobox with typing + dropdown */}
               <div className="space-y-2">
-                <Label>Location / Landmark</Label>
-                <Select value={landmark} onValueChange={setLandmark}>
-                  <SelectTrigger className="w-full">
-                    <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
-                    <SelectValue placeholder="Select campus location..." />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {CAMPUS_LANDMARKS.map((lm) => (
-                      <SelectItem key={lm} value={lm}>{lm}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="flex items-center gap-2 text-sm font-semibold">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  Location / Landmark
+                </Label>
+                <LandmarkCombobox value={landmark} onChange={setLandmark} />
                 <p className="text-xs text-muted-foreground">
-                  Select the nearest campus landmark where the issue occurred
+                  Type to search or pick from the dropdown. You can also enter a custom location.
                 </p>
 
                 {/* GPS Capture */}
