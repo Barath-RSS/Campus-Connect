@@ -209,6 +209,35 @@ export default function AuthPage() {
     }
   };
 
+  const handleStaffResetSms = async () => {
+    if (!resetContactNumber || resetContactNumber.length < 10) {
+      setErrors({ contactNumber: 'Please enter a valid 10-digit contact number' });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-staff-reset-sms', {
+        body: { contactNumber: resetContactNumber.trim() },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: '📱 SMS Sent!',
+        description: 'Check your phone for the password reset link.',
+      });
+      setStaffResetStep('sent');
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to send SMS. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
