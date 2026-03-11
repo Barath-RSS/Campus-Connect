@@ -458,8 +458,9 @@ export default function AuthPage() {
     }
   };
 
-  // Password reset link sent screen
-  if (isForgotPassword && resetStep === 'sent') {
+  // Password reset sent screen (email or SMS)
+  if (isForgotPassword && ((userType === 'staff' && staffResetStep === 'sent') || (userType !== 'staff' && resetStep === 'sent'))) {
+    const isStaffReset = userType === 'staff';
     return (
       <PageTransition className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
         <div className="absolute top-4 right-4">
@@ -479,24 +480,32 @@ export default function AuthPage() {
               transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
               className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-success/20 to-success/10 mb-6 shadow-lg"
             >
-              <Mail className="w-10 h-10 text-success" />
+              {isStaffReset ? <Phone className="w-10 h-10 text-success" /> : <Mail className="w-10 h-10 text-success" />}
             </motion.div>
             
             <h1 className="text-2xl font-bold text-foreground mb-3">
-              Check Your Email!
+              {isStaffReset ? 'Check Your Phone!' : 'Check Your Email!'}
             </h1>
             <p className="text-muted-foreground mb-4">
-              We've sent a password reset link to <span className="font-medium text-foreground">{email}</span>
+              {isStaffReset
+                ? <>We've sent a password reset link via SMS to your registered number ending in <span className="font-medium text-foreground">****{resetContactNumber.slice(-4)}</span></>
+                : <>We've sent a password reset link to <span className="font-medium text-foreground">{email}</span></>
+              }
             </p>
             <p className="text-sm text-muted-foreground mb-8">
-              Click the link in the email to set a new password. If you don't see it, check your spam folder.
+              {isStaffReset
+                ? 'Click the link in the SMS to set a new password. The link expires in 1 hour.'
+                : 'Click the link in the email to set a new password. If you don\'t see it, check your spam folder.'
+              }
             </p>
             
             <AnimatedButton
               onClick={() => {
                 setIsForgotPassword(false);
                 setResetStep('email');
+                setStaffResetStep('contact');
                 setEmail('');
+                setResetContactNumber('');
               }}
               className="w-full gradient-primary text-primary-foreground font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all"
             >
