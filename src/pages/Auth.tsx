@@ -32,6 +32,7 @@ const studentEmailSchema = z.string().email('Invalid email format').refine(
 
 type UserType = 'student' | 'official' | 'staff';
 type ResetStep = 'email' | 'sent';
+type StaffResetStep = 'contact' | 'sent';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
