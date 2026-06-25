@@ -25,6 +25,9 @@ import { useNavigate } from 'react-router-dom';
 import { CAMPUS_LANDMARKS } from '@/constants/campusLocations';
 import { UserProfile } from '@/components/UserProfile';
 import { LandmarkCombobox } from '@/components/LandmarkCombobox';
+import { SignedImage } from '@/components/SignedImage';
+import { getPublicErrorMessage } from '@/lib/errorMessages';
+import { reportDescriptionSchema, reportLandmarkSchema, MAX_DESCRIPTION_LENGTH, MAX_LANDMARK_LENGTH } from '@/lib/validation';
 
 import { Building2 } from 'lucide-react';
 import { MoreHorizontal } from 'lucide-react';
