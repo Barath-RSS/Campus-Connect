@@ -1012,7 +1012,7 @@ export default function AuthPage() {
               {!errors.password && !isLogin && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Sparkles className="w-3 h-3" />
-                  Use at least 8 characters with a mix of letters and numbers
+                  At least 8 characters with letters & numbers. Avoid common passwords (e.g. "password123").
                 </p>
               )}
               {capsLock && (

@@ -13,6 +13,27 @@ export function getPublicErrorMessage(error: unknown, fallback = 'Something went
   const err = error as { code?: string; status?: number; message?: string; name?: string };
   const rawMessage = (err.message || '').toLowerCase();
   const code = err.code || '';
+  const name = err.name || '';
+
+  // Auth-specific errors — safe to surface so users know how to fix them
+  if (code === 'weak_password' || name === 'AuthWeakPasswordError' || rawMessage.includes('weak') && rawMessage.includes('password')) {
+    return 'That password has appeared in a data breach. Please choose a stronger, unique password.';
+  }
+  if (code === 'user_already_exists' || rawMessage.includes('already registered') || rawMessage.includes('user already')) {
+    return 'An account with this email already exists. Please sign in instead.';
+  }
+  if (code === 'invalid_credentials' || rawMessage.includes('invalid login')) {
+    return 'Incorrect email or password.';
+  }
+  if (code === 'email_not_confirmed' || rawMessage.includes('email not confirmed')) {
+    return 'Please confirm your email before signing in.';
+  }
+  if (code === 'over_email_send_rate_limit' || rawMessage.includes('rate limit') || rawMessage.includes('too many')) {
+    return 'Too many attempts. Please wait a moment and try again.';
+  }
+  if (rawMessage.includes('password should be at least')) {
+    return 'Password is too short. Use at least 8 characters.';
+  }
 
   // PostgREST / Postgres standard codes
   const codeMap: Record<string, string> = {
@@ -26,6 +47,7 @@ export function getPublicErrorMessage(error: unknown, fallback = 'Something went
     'PGRST116': 'The requested item could not be found.',
   };
   if (code && codeMap[code]) return codeMap[code];
+
 
   // Heuristic matching for common RLS / auth signals
   if (rawMessage.includes('row-level security') || rawMessage.includes('permission denied')) {
