@@ -19,6 +19,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CAMPUS_LANDMARKS } from '@/constants/campusLocations';
 import { UserProfile } from '@/components/UserProfile';
+import { SignedImage } from '@/components/SignedImage';
+import { getPublicErrorMessage } from '@/lib/errorMessages';
 
 interface Report {
   id: string;
@@ -167,8 +169,8 @@ export default function StaffDashboard() {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from('issue-images').getPublicUrl(fileName);
-      const completionImageUrl = urlData.publicUrl;
+      // Bucket is private — store path only; display uses signed URLs.
+      const completionImageUrl = fileName;
 
       // Update report: resolved + completion image + resolved_by
       const { data: currentUser } = await supabase.auth.getUser();
@@ -190,7 +192,7 @@ export default function StaffDashboard() {
       setSelectedReport(null);
       fetchReports();
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message || 'Failed to update report.', variant: 'destructive' });
+      toast({ title: 'Error', description: getPublicErrorMessage(error, 'Failed to update report.'), variant: 'destructive' });
     } finally {
       setUploadingCompletion(false);
     }
@@ -490,7 +492,7 @@ export default function StaffDashboard() {
                       .filter(Boolean)
                       .map((url, i) => (
                         <div key={i} className="rounded-xl overflow-hidden border border-border">
-                          <img src={url!} alt={`Issue ${i + 1}`} className="w-full h-44 object-cover" />
+                          <SignedImage src={url!} alt={`Issue ${i + 1}`} className="w-full h-44 object-cover" />
                         </div>
                       ))}
                   </div>
@@ -538,7 +540,7 @@ export default function StaffDashboard() {
                     <CheckCircle2 className="w-5 h-5 text-success" />
                     <p className="font-medium text-success">Work Completed</p>
                   </div>
-                  <img
+                  <SignedImage
                     src={selectedReport.completion_image_url}
                     alt="Completion"
                     className="w-full h-40 object-cover rounded-lg border border-success/20"

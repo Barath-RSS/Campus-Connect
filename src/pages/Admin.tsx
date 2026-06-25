@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { getPublicErrorMessage } from '@/lib/errorMessages';
 
 interface UserWithRole {
   id: string;
@@ -116,7 +117,7 @@ export default function Admin() {
     if (error) {
       toast({
         title: 'Error',
-        description: 'Failed to update user role.',
+        description: getPublicErrorMessage(error, 'Failed to update user role.'),
         variant: 'destructive',
       });
     } else {

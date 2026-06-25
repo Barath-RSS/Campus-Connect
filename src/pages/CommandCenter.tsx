@@ -31,6 +31,10 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { CAMPUS_LANDMARKS } from '@/constants/campusLocations';
 import { UserProfile } from '@/components/UserProfile';
+import { SignedImage } from '@/components/SignedImage';
+import { getSignedIssueImageUrl } from '@/lib/storage';
+import { getPublicErrorMessage } from '@/lib/errorMessages';
+import { officialResponseSchema, MAX_RESPONSE_LENGTH } from '@/lib/validation';
 
 interface AccessRequest {
   id: string;
@@ -340,20 +344,31 @@ export default function CommandCenter() {
   const handleUpdateReport = async () => {
     if (!selectedReport || !newStatus) return;
 
+    const trimmedResponse = officialResponse.trim();
+    const responseResult = officialResponseSchema.safeParse(trimmedResponse);
+    if (!responseResult.success) {
+      toast({
+        title: 'Response Too Long',
+        description: responseResult.error.errors[0].message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setUpdating(true);
 
     const { error } = await supabase
       .from('reports')
       .update({
         status: newStatus,
-        official_response: officialResponse.trim() || null,
+        official_response: trimmedResponse || null,
       })
       .eq('id', selectedReport.id);
 
     if (error) {
       toast({
         title: 'Error',
-        description: 'Failed to update report.',
+        description: getPublicErrorMessage(error, 'Failed to update report.'),
         variant: 'destructive',
       });
     } else {
