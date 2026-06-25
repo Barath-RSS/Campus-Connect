@@ -527,7 +527,7 @@ export default function StudentDashboard() {
                             <CheckCircle2 className="w-4 h-4 text-success" />
                             <p className="text-sm font-semibold text-success">Work Completed — Verification Photo</p>
                           </div>
-                          <img
+                          <SignedImage
                             src={report.completion_image_url}
                             alt="Completion proof"
                             className="w-full h-44 object-cover"
