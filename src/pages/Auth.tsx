@@ -14,6 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 import { PageTransition } from '@/components/ui/PageTransition';
 import { supabase } from '@/integrations/supabase/client';
 import collegeLogo from '@/assets/college-logo.jpg';
+import { getPublicErrorMessage } from '@/lib/errorMessages';
+import { accessRequestReasonSchema, MAX_REASON_LENGTH } from '@/lib/validation';
 
 const emailSchema = z.string().email('Invalid email format').max(255);
 const passwordSchema = z.string().min(8, 'Use a stronger password (minimum 8 characters)').max(128);
@@ -201,7 +203,7 @@ export default function AuthPage() {
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to send reset link.',
+        description: getPublicErrorMessage(error, 'Failed to send reset link.'),
         variant: 'destructive',
       });
     } finally {
@@ -230,7 +232,7 @@ export default function AuthPage() {
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to send SMS. Please try again.',
+        description: getPublicErrorMessage(error, 'Failed to send SMS. Please try again.'),
         variant: 'destructive',
       });
     } finally {
@@ -450,7 +452,7 @@ export default function AuthPage() {
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Something went wrong. Please try again.',
+        description: getPublicErrorMessage(error, 'Something went wrong. Please try again.'),
         variant: 'destructive',
       });
     } finally {
@@ -969,9 +971,9 @@ export default function AuthPage() {
                     id="reason"
                     placeholder="e.g., Maintenance Department, Faculty - CSE"
                     value={accessRequestReason}
-                    onChange={(e) => setAccessRequestReason(e.target.value)}
+                    onChange={(e) => setAccessRequestReason(e.target.value.slice(0, MAX_REASON_LENGTH))}
                     className="pl-12 min-h-[70px] rounded-xl border-2 focus:border-primary transition-colors"
-                    maxLength={500}
+                    maxLength={MAX_REASON_LENGTH}
                   />
                 </div>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">

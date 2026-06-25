@@ -25,6 +25,9 @@ import { useNavigate } from 'react-router-dom';
 import { CAMPUS_LANDMARKS } from '@/constants/campusLocations';
 import { UserProfile } from '@/components/UserProfile';
 import { LandmarkCombobox } from '@/components/LandmarkCombobox';
+import { SignedImage } from '@/components/SignedImage';
+import { getPublicErrorMessage } from '@/lib/errorMessages';
+import { reportDescriptionSchema, reportLandmarkSchema, MAX_DESCRIPTION_LENGTH, MAX_LANDMARK_LENGTH } from '@/lib/validation';
 
 import { Building2 } from 'lucide-react';
 import { MoreHorizontal } from 'lucide-react';
@@ -227,28 +230,45 @@ export default function StudentDashboard() {
   const uploadImage = async (file: File): Promise<string | null> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
-    
+
     const { error } = await supabase.storage
       .from('issue-images')
       .upload(fileName, file);
-    
+
     if (error) {
       console.error('Error uploading image:', error);
       return null;
     }
-    
-    const { data } = supabase.storage
-      .from('issue-images')
-      .getPublicUrl(fileName);
-    
-    return data.publicUrl;
+
+    // Bucket is private — store the path only. Display uses signed URLs.
+    return fileName;
   };
 
   const handleSubmit = async () => {
-    if (!selectedCategory || !description.trim()) {
+    if (!selectedCategory) {
       toast({
         title: 'Missing Information',
-        description: 'Please select a category and provide a description.',
+        description: 'Please select a category.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const descResult = reportDescriptionSchema.safeParse(description);
+    if (!descResult.success) {
+      toast({
+        title: 'Description Required',
+        description: descResult.error.errors[0].message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const landmarkResult = reportLandmarkSchema.safeParse(landmark);
+    if (!landmarkResult.success) {
+      toast({
+        title: 'Landmark Too Long',
+        description: landmarkResult.error.errors[0].message,
         variant: 'destructive',
       });
       return;
@@ -308,7 +328,7 @@ export default function StudentDashboard() {
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to submit report.',
+        description: getPublicErrorMessage(error, 'Failed to submit report.'),
         variant: 'destructive',
       });
     } finally {
@@ -507,7 +527,7 @@ export default function StudentDashboard() {
                             <CheckCircle2 className="w-4 h-4 text-success" />
                             <p className="text-sm font-semibold text-success">Work Completed — Verification Photo</p>
                           </div>
-                          <img
+                          <SignedImage
                             src={report.completion_image_url}
                             alt="Completion proof"
                             className="w-full h-44 object-cover"
@@ -686,10 +706,14 @@ export default function StudentDashboard() {
                   id="description"
                   placeholder="Provide details about the incident..."
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => setDescription(e.target.value.slice(0, MAX_DESCRIPTION_LENGTH))}
                   rows={4}
+                  maxLength={MAX_DESCRIPTION_LENGTH}
                   className="resize-none"
                 />
+                <p className="text-xs text-muted-foreground text-right">
+                  {description.length}/{MAX_DESCRIPTION_LENGTH}
+                </p>
               </div>
 
               {/* Photo Capture */}

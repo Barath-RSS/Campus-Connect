@@ -31,6 +31,10 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { CAMPUS_LANDMARKS } from '@/constants/campusLocations';
 import { UserProfile } from '@/components/UserProfile';
+import { SignedImage } from '@/components/SignedImage';
+import { getSignedIssueImageUrl } from '@/lib/storage';
+import { getPublicErrorMessage } from '@/lib/errorMessages';
+import { officialResponseSchema, MAX_RESPONSE_LENGTH } from '@/lib/validation';
 
 interface AccessRequest {
   id: string;
@@ -340,20 +344,31 @@ export default function CommandCenter() {
   const handleUpdateReport = async () => {
     if (!selectedReport || !newStatus) return;
 
+    const trimmedResponse = officialResponse.trim();
+    const responseResult = officialResponseSchema.safeParse(trimmedResponse);
+    if (!responseResult.success) {
+      toast({
+        title: 'Response Too Long',
+        description: responseResult.error.errors[0].message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setUpdating(true);
 
     const { error } = await supabase
       .from('reports')
       .update({
         status: newStatus,
-        official_response: officialResponse.trim() || null,
+        official_response: trimmedResponse || null,
       })
       .eq('id', selectedReport.id);
 
     if (error) {
       toast({
         title: 'Error',
-        description: 'Failed to update report.',
+        description: getPublicErrorMessage(error, 'Failed to update report.'),
         variant: 'destructive',
       });
     } else {
@@ -910,9 +925,11 @@ export default function CommandCenter() {
           const imgAreaX = margin + infoWidth + 3;
           const imgAreaWidth = contentWidth - infoWidth - 3;
           
-          const loadImage = async (url: string): Promise<string | null> => {
+          const loadImage = async (urlOrPath: string): Promise<string | null> => {
             try {
-              const resp = await fetch(url);
+              const signed = await getSignedIssueImageUrl(urlOrPath);
+              if (!signed) return null;
+              const resp = await fetch(signed);
               const blob = await resp.blob();
               return await new Promise<string>((resolve) => {
                 const reader = new FileReader();
@@ -1926,7 +1943,7 @@ export default function CommandCenter() {
                       .filter(Boolean)
                       .map((url, i) => (
                         <div key={i} className="rounded-xl overflow-hidden border border-border">
-                          <img
+                          <SignedImage
                             src={url!}
                             alt={`Issue photo ${i + 1}`}
                             className="w-full h-48 object-cover"
@@ -1942,7 +1959,7 @@ export default function CommandCenter() {
                 <div className="space-y-2">
                   <Label className="text-success">Completion Photo</Label>
                   <div className="rounded-xl overflow-hidden border border-success/30">
-                    <img
+                    <SignedImage
                       src={selectedReport.completion_image_url}
                       alt="Completion"
                       className="w-full h-48 object-cover"
@@ -2035,9 +2052,13 @@ export default function CommandCenter() {
                   <Textarea
                     placeholder="Enter your response..."
                     value={officialResponse}
-                    onChange={(e) => setOfficialResponse(e.target.value)}
+                    onChange={(e) => setOfficialResponse(e.target.value.slice(0, MAX_RESPONSE_LENGTH))}
                     rows={3}
+                    maxLength={MAX_RESPONSE_LENGTH}
                   />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {officialResponse.length}/{MAX_RESPONSE_LENGTH}
+                  </p>
                 </div>
 
                 <AnimatedButton
