@@ -706,10 +706,14 @@ export default function StudentDashboard() {
                   id="description"
                   placeholder="Provide details about the incident..."
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => setDescription(e.target.value.slice(0, MAX_DESCRIPTION_LENGTH))}
                   rows={4}
+                  maxLength={MAX_DESCRIPTION_LENGTH}
                   className="resize-none"
                 />
+                <p className="text-xs text-muted-foreground text-right">
+                  {description.length}/{MAX_DESCRIPTION_LENGTH}
+                </p>
               </div>
 
               {/* Photo Capture */}
