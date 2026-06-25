@@ -227,28 +227,45 @@ export default function StudentDashboard() {
   const uploadImage = async (file: File): Promise<string | null> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
-    
+
     const { error } = await supabase.storage
       .from('issue-images')
       .upload(fileName, file);
-    
+
     if (error) {
       console.error('Error uploading image:', error);
       return null;
     }
-    
-    const { data } = supabase.storage
-      .from('issue-images')
-      .getPublicUrl(fileName);
-    
-    return data.publicUrl;
+
+    // Bucket is private — store the path only. Display uses signed URLs.
+    return fileName;
   };
 
   const handleSubmit = async () => {
-    if (!selectedCategory || !description.trim()) {
+    if (!selectedCategory) {
       toast({
         title: 'Missing Information',
-        description: 'Please select a category and provide a description.',
+        description: 'Please select a category.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const descResult = reportDescriptionSchema.safeParse(description);
+    if (!descResult.success) {
+      toast({
+        title: 'Description Required',
+        description: descResult.error.errors[0].message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const landmarkResult = reportLandmarkSchema.safeParse(landmark);
+    if (!landmarkResult.success) {
+      toast({
+        title: 'Landmark Too Long',
+        description: landmarkResult.error.errors[0].message,
         variant: 'destructive',
       });
       return;
@@ -308,7 +325,7 @@ export default function StudentDashboard() {
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to submit report.',
+        description: getPublicErrorMessage(error, 'Failed to submit report.'),
         variant: 'destructive',
       });
     } finally {
