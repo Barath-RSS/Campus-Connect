@@ -111,13 +111,14 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.5 }}
-              className="flex items-center gap-3"
+              className="flex items-center gap-3 px-2"
             >
-              <div className="h-px w-8 bg-gradient-to-r from-transparent to-primary/40" />
-              <p className="text-sm font-bold text-primary tracking-[0.25em] uppercase">
+              <div className="h-px w-4 md:w-8 bg-gradient-to-r from-transparent to-primary/40" />
+              <p className="text-xs md:text-sm font-bold text-primary tracking-[0.15em] md:tracking-[0.25em] uppercase whitespace-nowrap">
                 Justice • Peace • Revolution
               </p>
-              <div className="h-px w-8 bg-gradient-to-l from-transparent to-primary/40" />
+              <div className="h-px w-4 md:w-8 bg-gradient-to-l from-transparent to-primary/40" />
+
             </motion.div>
 
             {/* Loading Indicator - Premium dots */}
